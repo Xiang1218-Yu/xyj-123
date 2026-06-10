@@ -64,6 +64,11 @@ export default function CremationList() {
     });
   };
 
+  const getFurnaceName = (furnaceId: string) => {
+    const furnace = furnaceList.find(f => f.id === furnaceId);
+    return furnace ? `${furnace.name}（${furnace.id}）` : '待分配';
+  };
+
   const handleStatusChange = (id: string) => {
     const cremation = cremations.find(c => c.id === id);
     if (cremation) {
@@ -87,6 +92,10 @@ export default function CremationList() {
 
   const getFurnaceSchedule = (furnaceId: string) => {
     return cremations.filter(c => c.furnaceId === furnaceId);
+  };
+
+  const getUnassignedSchedule = () => {
+    return cremations.filter(c => !furnaceList.some(f => f.id === c.furnaceId));
   };
 
   const openAddModal = () => {
@@ -158,21 +167,81 @@ export default function CremationList() {
           <Flame className="w-5 h-5 inline mr-2 text-accent" />
           火化炉排期视图
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* 待分配区域 */}
+          <div className="card border-dashed border-2 border-amber-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg text-primary-800">待分配</h3>
+              <div className={cn(
+                'w-3 h-3 rounded-full',
+                getUnassignedSchedule().length > 0
+                  ? 'bg-orange-500 animate-pulse'
+                  : 'bg-gray-300'
+              )} />
+            </div>
+            <div className="space-y-3">
+              {getUnassignedSchedule().length === 0 ? (
+                <p className="text-sm text-neutral-muted text-center py-4">全部已分配</p>
+              ) : (
+                getUnassignedSchedule().map(item => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-lg border border-dashed border-orange-200 bg-orange-50"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-sm text-primary-800">
+                        {getPetName(item.petId)}
+                      </span>
+                      <span className={cn('status-badge text-xs', statusMap[item.status].className)}>
+                        {statusMap[item.status].label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-neutral-muted">
+                      <Clock className="w-3 h-3" />
+                      {formatTime(item.cremationTime)}
+                    </div>
+                    <div className="mt-2">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="w-full text-xs py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors font-medium"
+                      >
+                        分配火化炉
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 火化炉列表 */}
           {furnaceList.map(furnace => {
             const schedule = getFurnaceSchedule(furnace.id);
+            const inProgress = schedule.find(s => s.status === 'in-progress');
+            const pendingCount = schedule.filter(s => s.status === 'pending').length;
+            const completedCount = schedule.filter(s => s.status === 'completed').length;
+
+            let statusColor = 'bg-green-500';
+            let statusText = '空闲';
+            if (inProgress) {
+              statusColor = 'bg-amber-500 animate-pulse';
+              statusText = '火化中';
+            } else if (pendingCount > 0) {
+              statusColor = 'bg-blue-500';
+              statusText = `${pendingCount}个待开始`;
+            } else if (completedCount > 0 && pendingCount === 0 && !inProgress) {
+              statusColor = 'bg-green-500';
+              statusText = '全部完成';
+            }
+
             return (
               <div key={furnace.id} className="card">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-lg text-primary-800">{furnace.name}</h3>
-                  <div className={cn(
-                    'w-3 h-3 rounded-full',
-                    schedule.some(s => s.status === 'in-progress')
-                      ? 'bg-amber-500 animate-pulse'
-                      : schedule.some(s => s.status === 'pending')
-                        ? 'bg-blue-500'
-                        : 'bg-green-500'
-                  )} />
+                  <div>
+                    <h3 className="font-semibold text-lg text-primary-800">{furnace.name}</h3>
+                    <span className="text-xs text-neutral-muted">{statusText}</span>
+                  </div>
+                  <div className={cn('w-3 h-3 rounded-full', statusColor)} />
                 </div>
                 <div className="space-y-3">
                   {schedule.length === 0 ? (
@@ -182,9 +251,9 @@ export default function CremationList() {
                       <div
                         key={item.id}
                         className={cn(
-                          'p-3 rounded-lg border',
+                          'p-3 rounded-lg border transition-all',
                           item.status === 'in-progress'
-                            ? 'bg-amber-50 border-amber-200'
+                            ? 'bg-amber-50 border-amber-200 ring-2 ring-amber-200'
                             : item.status === 'completed'
                               ? 'bg-green-50 border-green-200'
                               : 'bg-blue-50 border-blue-200'
@@ -275,7 +344,14 @@ export default function CremationList() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-sm text-neutral-text">{cremation.furnaceId}</span>
+                        <span className={cn(
+                          'text-sm',
+                          furnaceList.some(f => f.id === cremation.furnaceId)
+                            ? 'text-neutral-text'
+                            : 'text-orange-600 font-medium'
+                        )}>
+                          {getFurnaceName(cremation.furnaceId)}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <span className={cn('status-badge', statusMap[cremation.status].className)}>

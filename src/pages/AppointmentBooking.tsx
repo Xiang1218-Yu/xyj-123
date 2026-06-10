@@ -188,27 +188,30 @@ export default function AppointmentBooking() {
     });
 
     let bookingId = '';
+    const serviceLabelMap: Record<ServiceType, string> = {
+      ceremony: '告别仪式（待分配场地）',
+      cremation: '火化服务（暂用仪式登记）',
+      full: '全套服务（待分配场地）'
+    };
 
-    if (formData.serviceType === 'ceremony' || formData.serviceType === 'full') {
-      const newCeremony = addCeremony({
-        petId: newPet.id,
-        ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
-        location: '待分配',
-        participants: '待确认',
-        status: 'pending',
-        notes: formData.notes
-      });
-      bookingId = newCeremony.id;
-    }
+    // 无论什么服务类型都创建 ceremony 记录，确保预约列表中可见
+    const newCeremony = addCeremony({
+      petId: newPet.id,
+      ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
+      location: serviceLabelMap[formData.serviceType!],
+      participants: '待确认',
+      status: 'pending',
+      notes: formData.notes
+    });
+    bookingId = newCeremony.id;
 
     if (formData.serviceType === 'cremation' || formData.serviceType === 'full') {
-      const newCremation = addCremation({
+      addCremation({
         petId: newPet.id,
         cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
         furnaceId: '待分配',
         status: 'pending'
       });
-      if (!bookingId) bookingId = newCremation.id;
     }
 
     setSubmittedInfo({

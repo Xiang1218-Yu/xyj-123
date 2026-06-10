@@ -1,13 +1,34 @@
 import { Link } from 'react-router-dom';
-import { CalendarCheck, ExternalLink, PawPrint, User, Phone, Clock, ChevronRight } from 'lucide-react';
+import { CalendarCheck, ExternalLink, PawPrint, User, Phone, Clock, ChevronRight, Flame, Heart, Sparkles, Mail } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
+import type { Ceremony } from '@/shared/types';
 
 export default function Appointments() {
-  const { ceremonies, pets, owners } = useAppStore();
+  const { ceremonies, pets, owners, cremations } = useAppStore();
 
   const getPetById = (id: string) => pets.find(p => p.id === id);
   const getOwnerById = (id: string) => owners.find(o => o.id === id);
+
+  const getServiceType = (ceremony: Ceremony): { type: 'ceremony' | 'cremation' | 'full'; label: string; icon: any; color: string } => {
+    const petCremations = cremations.filter(c => c.petId === ceremony.petId);
+    const hasCremationSameTime = petCremations.some(c => {
+      const cTime = new Date(c.cremationTime).getTime();
+      const cerTime = new Date(ceremony.ceremonyTime).getTime();
+      return Math.abs(cTime - cerTime) < 60 * 60 * 1000;
+    });
+
+    if (ceremony.location.includes('全套') || (ceremony.location !== '待分配' && ceremony.location.includes('全套'))) {
+      return { type: 'full', label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
+    }
+    if (hasCremationSameTime && ceremony.location.includes('火化服务')) {
+      return { type: 'cremation', label: '火化服务', icon: Flame, color: 'bg-orange-100 text-orange-700' };
+    }
+    if (hasCremationSameTime) {
+      return { type: 'full', label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
+    }
+    return { type: 'ceremony', label: '告别仪式', icon: Heart, color: 'bg-rose-100 text-rose-700' };
+  };
 
   const sortedCeremonies = [...ceremonies].sort(
     (a, b) => new Date(a.ceremonyTime).getTime() - new Date(b.ceremonyTime).getTime()
@@ -117,8 +138,9 @@ export default function Appointments() {
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">宠物信息</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">主人信息</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">服务类型</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">预约时间</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">地点</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">地点/备注</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">状态</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">操作</th>
               </tr>
@@ -126,7 +148,7 @@ export default function Appointments() {
             <tbody className="divide-y divide-primary-100">
               {sortedCeremonies.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
+                  <td colSpan={7} className="px-6 py-16 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-4">
                       <CalendarCheck className="w-8 h-8 text-primary-400" />
                     </div>
@@ -138,6 +160,8 @@ export default function Appointments() {
                 sortedCeremonies.map((ceremony) => {
                   const pet = getPetById(ceremony.petId);
                   const owner = pet ? getOwnerById(pet.ownerId) : undefined;
+                  const serviceInfo = getServiceType(ceremony);
+                  const ServiceIcon = serviceInfo.icon;
                   return (
                     <tr key={ceremony.id} className="hover:bg-primary-50/50 transition-colors">
                       <td className="px-6 py-4">
@@ -169,7 +193,19 @@ export default function Appointments() {
                             <Phone className="w-3.5 h-3.5 text-primary-500" />
                             <span className="text-neutral-muted">{owner?.phone || '-'}</span>
                           </div>
+                          {owner?.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="w-3.5 h-3.5 text-primary-500" />
+                              <span className="text-neutral-muted">{owner.email}</span>
+                            </div>
+                          )}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${serviceInfo.color}`}>
+                          <ServiceIcon className="w-3.5 h-3.5" />
+                          {serviceInfo.label}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-neutral-text">{formatDateTime(ceremony.ceremonyTime)}</p>
