@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Archive, Calendar, Check, Plus, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Archive, Calendar, Check, Plus, Eye, X, Edit, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { mockUrns, mockPets } from '@/data/mockData';
+import { useAppStore } from '@/store';
 import type { Urn } from '@/shared/types';
 import { cn } from '@/lib/utils';
 
@@ -23,11 +24,23 @@ interface SlotInfo {
 }
 
 export default function UrnStorage() {
-  const [urns] = useState<Urn[]>(mockUrns);
+  const navigate = useNavigate();
+  const urns = useAppStore(state => state.urns);
+  const pets = useAppStore(state => state.pets);
+  const addUrn = useAppStore(state => state.addUrn);
+  const updateUrn = useAppStore(state => state.updateUrn);
+  const deleteUrn = useAppStore(state => state.deleteUrn);
+
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    petId: '',
+    storedDate: new Date().toISOString().split('T')[0],
+    expiryDate: '',
+  });
 
   const getPetName = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
+    const pet = pets.find(p => p.id === petId);
     return pet?.name || '未知';
   };
 
@@ -54,13 +67,59 @@ export default function UrnStorage() {
 
   const handleSlotClick = (slot: SlotInfo) => {
     setSelectedSlot(slot);
+    setShowAddForm(false);
   };
 
   const closeModal = () => {
     setSelectedSlot(null);
+    setShowAddForm(false);
+  };
+
+  const handleAddUrn = () => {
+    if (!formData.petId || !formData.storedDate) {
+      alert('请填写完整信息');
+      return;
+    }
+    if (selectedSlot) {
+      addUrn({
+        petId: formData.petId,
+        area: selectedSlot.area,
+        shelf: selectedSlot.shelf,
+        position: selectedSlot.position,
+        storedDate: formData.storedDate,
+        expiryDate: formData.expiryDate || undefined,
+        status: 'stored'
+      });
+      setFormData({
+        petId: '',
+        storedDate: new Date().toISOString().split('T')[0],
+        expiryDate: '',
+      });
+      setShowAddForm(false);
+      closeModal();
+    }
+  };
+
+  const handleRetrieve = (urnId: string) => {
+    if (confirm('确定要将此骨灰盒取出吗？')) {
+      updateUrn(urnId, { status: 'retrieved' });
+      closeModal();
+    }
+  };
+
+  const handleDelete = (urnId: string) => {
+    if (confirm('确定要删除这条存放记录吗？')) {
+      deleteUrn(urnId);
+      closeModal();
+    }
   };
 
   const storedUrns = urns.filter(u => u.status === 'stored');
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return dateStr;
+  };
 
   return (
     <div>
@@ -95,6 +154,7 @@ export default function UrnStorage() {
                               ? 'bg-accent/20 border-accent text-primary-800 hover:bg-accent/30 hover:shadow-md'
                               : 'bg-white border-primary-200 text-neutral-muted hover:border-primary-400 hover:bg-primary-50'
                           )}
+                          title={slot.occupied ? `已占用: ${getPetName(slot.urn!.petId)}` : `空闲: ${slot.position}`}
                         >
                           {slot.occupied ? (
                             <Archive className="w-5 h-5 text-accent" />
@@ -153,53 +213,79 @@ export default function UrnStorage() {
                 </tr>
               </thead>
               <tbody>
-                {storedUrns.map(urn => (
-                  <tr
-                    key={urn.id}
-                    className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Archive className="w-4 h-4 text-accent" />
-                        <span className="text-sm font-medium text-primary-800">
-                          {getPetName(urn.petId)}
-                        </span>
+                {storedUrns.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-3">
+                        <Archive className="w-7 h-7 text-primary-400" />
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-neutral-text">
-                        {urn.area} - {urn.shelf} - {urn.position}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">{urn.storedDate}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">{urn.expiryDate}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={cn('status-badge', statusMap[urn.status].className)}>
-                        {statusMap[urn.status].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
-                          title="查看详情"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <p className="text-neutral-muted">暂无存放记录</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  storedUrns.map(urn => (
+                    <tr
+                      key={urn.id}
+                      className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Archive className="w-4 h-4 text-accent" />
+                          <span className="text-sm font-medium text-primary-800">
+                            {getPetName(urn.petId)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-neutral-text">
+                          {urn.area} - {urn.shelf} - {urn.position}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">{urn.storedDate}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">{urn.expiryDate || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={cn('status-badge', statusMap[urn.status].className)}>
+                          {statusMap[urn.status].label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
+                            onClick={() => navigate(`/pets/${urn.petId}`)}
+                            title="查看宠物详情"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                            onClick={() => handleRetrieve(urn.id)}
+                            title="取出"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={() => handleDelete(urn.id)}
+                            title="删除"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -208,10 +294,18 @@ export default function UrnStorage() {
 
       {selectedSlot && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={closeModal}>
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="font-serif text-xl font-semibold text-primary-800 mb-4">
-              {selectedSlot.area} - {selectedSlot.shelf} - {selectedSlot.position}
-            </h3>
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-xl font-semibold text-primary-800">
+                {selectedSlot.area} - {selectedSlot.shelf} - {selectedSlot.position}
+              </h3>
+              <button
+                className="p-2 rounded-lg text-neutral-muted hover:bg-primary-100 transition-colors"
+                onClick={closeModal}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             {selectedSlot.occupied && selectedSlot.urn ? (
               <div className="space-y-4">
                 <div className="p-4 bg-primary-50 rounded-lg">
@@ -222,32 +316,93 @@ export default function UrnStorage() {
                     </span>
                   </div>
                   <div className="text-sm text-neutral-muted space-y-1">
-                    <p>存放日期：{selectedSlot.urn.storedDate}</p>
-                    <p>到期日期：{selectedSlot.urn.expiryDate}</p>
+                    <p>存放日期：{formatDate(selectedSlot.urn.storedDate)}</p>
+                    <p>到期日期：{formatDate(selectedSlot.urn.expiryDate || '')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="btn-primary flex-1">
+                  <button
+                    className="btn-primary flex-1"
+                    onClick={() => navigate(`/pets/${selectedSlot.urn!.petId}`)}
+                  >
                     <Eye className="w-4 h-4 mr-2" />
                     查看详情
+                  </button>
+                  <button
+                    className="btn-accent"
+                    onClick={() => handleRetrieve(selectedSlot.urn!.id)}
+                  >
+                    取出
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-neutral-muted">该位置当前空闲</p>
-                <button className="btn-primary w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  登记存放
-                </button>
+                {!showAddForm ? (
+                  <>
+                    <p className="text-neutral-muted">该位置当前空闲</p>
+                    <button
+                      className="btn-primary w-full"
+                      onClick={() => setShowAddForm(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      登记存放
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="label-text">选择宠物 *</label>
+                      <select
+                        className="input-field"
+                        value={formData.petId}
+                        onChange={(e) => setFormData(prev => ({ ...prev, petId: e.target.value }))}
+                      >
+                        <option value="">请选择宠物</option>
+                        {pets.map(pet => (
+                          <option key={pet.id} value={pet.id}>
+                            {pet.name}（{pet.breed}）
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label-text">存放日期 *</label>
+                      <input
+                        type="date"
+                        className="input-field"
+                        value={formData.storedDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, storedDate: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="label-text">到期日期</label>
+                      <input
+                        type="date"
+                        className="input-field"
+                        value={formData.expiryDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        className="btn-primary flex-1"
+                        onClick={handleAddUrn}
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        确认登记
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setShowAddForm(false)}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-            <button
-              className="mt-4 w-full btn-secondary"
-              onClick={closeModal}
-            >
-              关闭
-            </button>
           </div>
         </div>
       )}

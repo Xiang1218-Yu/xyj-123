@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Flame, Calendar, User, Clock, Check, ArrowRight } from 'lucide-react';
+import { Flame, Calendar, User, Clock, Check, ArrowRight, Plus, Edit, Trash2, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { mockCremations, mockPets } from '@/data/mockData';
+import { useAppStore } from '@/store';
 import type { Cremation } from '@/shared/types';
 import { cn } from '@/lib/utils';
 
@@ -24,10 +24,24 @@ const furnaceList = [
 ];
 
 export default function CremationList() {
-  const [cremations, setCremations] = useState<Cremation[]>(mockCremations);
+  const cremations = useAppStore(state => state.cremations);
+  const pets = useAppStore(state => state.pets);
+  const addCremation = useAppStore(state => state.addCremation);
+  const updateCremation = useAppStore(state => state.updateCremation);
+  const deleteCremation = useAppStore(state => state.deleteCremation);
+
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    petId: '',
+    cremationTime: '',
+    furnaceId: 'F-001',
+    status: 'pending' as Cremation['status'],
+    operator: ''
+  });
 
   const getPetName = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
+    const pet = pets.find(p => p.id === petId);
     return pet?.name || '未知';
   };
 
@@ -51,17 +65,13 @@ export default function CremationList() {
   };
 
   const handleStatusChange = (id: string) => {
-    setCremations(prev =>
-      prev.map(c => {
-        if (c.id === id) {
-          const nextStatus = nextStatusMap[c.status];
-          if (nextStatus) {
-            return { ...c, status: nextStatus };
-          }
-        }
-        return c;
-      })
-    );
+    const cremation = cremations.find(c => c.id === id);
+    if (cremation) {
+      const nextStatus = nextStatusMap[cremation.status];
+      if (nextStatus) {
+        updateCremation(id, { status: nextStatus });
+      }
+    }
   };
 
   const getStatusButtonLabel = (status: Cremation['status']) => {
@@ -79,11 +89,68 @@ export default function CremationList() {
     return cremations.filter(c => c.furnaceId === furnaceId);
   };
 
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData({
+      petId: '',
+      cremationTime: '',
+      furnaceId: 'F-001',
+      status: 'pending',
+      operator: ''
+    });
+    setShowModal(true);
+  };
+
+  const openEditModal = (cremation: Cremation) => {
+    setEditingId(cremation.id);
+    setFormData({
+      petId: cremation.petId,
+      cremationTime: cremation.cremationTime.slice(0, 16),
+      furnaceId: cremation.furnaceId,
+      status: cremation.status,
+      operator: cremation.operator || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.petId || !formData.cremationTime) {
+      alert('请填写完整填写必填项');
+      return;
+    }
+    const data = {
+      petId: formData.petId,
+      cremationTime: formData.cremationTime + ':00',
+      furnaceId: formData.furnaceId,
+      status: formData.status,
+      operator: formData.operator
+    };
+    if (editingId) {
+      updateCremation(editingId, data);
+    } else {
+      addCremation(data);
+    }
+    setShowModal(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('确定要删除这条火化记录吗？')) {
+      deleteCremation(id);
+    }
+  };
+
   return (
     <div>
       <PageHeader
         title="火化时间管理"
         description="火化炉排期与状态跟踪"
+        actions={
+          <button className="btn-primary" onClick={openAddModal}>
+            <Plus className="w-4 h-4 mr-2" />
+            新增火化
+          </button>
+        }
       />
 
       <div className="mb-8">
@@ -176,71 +243,197 @@ export default function CremationList() {
                 </tr>
               </thead>
               <tbody>
-                {cremations.map(cremation => (
-                  <tr
-                    key={cremation.id}
-                    className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">
-                          {formatDateTime(cremation.cremationTime)}
-                        </span>
+                {cremations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-3">
+                        <Flame className="w-7 h-7 text-primary-400" />
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-accent" />
-                        <span className="text-sm font-medium text-primary-800">
-                          {getPetName(cremation.petId)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-neutral-text">{cremation.furnaceId}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={cn('status-badge', statusMap[cremation.status].className)}>
-                        {statusMap[cremation.status].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">{cremation.operator || '待分配'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end">
-                        {getStatusButtonLabel(cremation.status) && (
-                          <button
-                            className={cn(
-                              'inline-flex items-center px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
-                              cremation.status === 'pending'
-                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                : 'bg-green-600 text-white hover:bg-green-700'
-                            )}
-                            onClick={() => handleStatusChange(cremation.id)}
-                          >
-                            {cremation.status === 'pending' ? (
-                              <Flame className="w-3.5 h-3.5 mr-1.5" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5 mr-1.5" />
-                            )}
-                            {getStatusButtonLabel(cremation.status)}
-                            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-neutral-muted">暂无火化记录</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  cremations.map(cremation => (
+                    <tr
+                      key={cremation.id}
+                      className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">
+                            {formatDateTime(cremation.cremationTime)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Flame className="w-4 h-4 text-accent" />
+                          <span className="text-sm font-medium text-primary-800">
+                            {getPetName(cremation.petId)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-neutral-text">{cremation.furnaceId}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={cn('status-badge', statusMap[cremation.status].className)}>
+                          {statusMap[cremation.status].label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">{cremation.operator || '待分配'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {getStatusButtonLabel(cremation.status) && (
+                            <button
+                              className={cn(
+                                'inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+                                cremation.status === 'pending'
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                  : 'bg-green-600 text-white hover:bg-green-700'
+                              )}
+                              onClick={() => handleStatusChange(cremation.id)}
+                            >
+                              {cremation.status === 'pending' ? (
+                                <Flame className="w-3.5 h-3.5 mr-1.5" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              {getStatusButtonLabel(cremation.status)}
+                              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                            </button>
+                          )}
+                          <button
+                            className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
+                            onClick={() => openEditModal(cremation)}
+                            title="编辑"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={() => handleDelete(cremation.id)}
+                            title="删除"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-lg w-full mx-4 animate-fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-serif text-xl font-semibold text-primary-800">
+                {editingId ? '编辑火化记录' : '新增火化记录'}
+              </h3>
+              <button
+                className="p-2 rounded-lg text-neutral-muted hover:bg-primary-100 transition-colors"
+                onClick={() => setShowModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label-text">选择宠物 *</label>
+                <select
+                  className="input-field"
+                  value={formData.petId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, petId: e.target.value }))}
+                  required
+                >
+                  <option value="">请选择宠物</option>
+                  {pets.map(pet => (
+                    <option key={pet.id} value={pet.id}>
+                      {pet.name}（{pet.breed}）
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label-text">火化时间 *</label>
+                  <input
+                    type="datetime-local"
+                    className="input-field"
+                    value={formData.cremationTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cremationTime: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label-text">火化炉</label>
+                  <select
+                    className="input-field"
+                    value={formData.furnaceId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, furnaceId: e.target.value }))}
+                  >
+                    {furnaceList.map(furnace => (
+                      <option key={furnace.id} value={furnace.id}>
+                        {furnace.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label-text">状态</label>
+                  <select
+                    className="input-field"
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Cremation['status'] }))}
+                  >
+                    {Object.entries(statusMap).map(([value, info]) => (
+                      <option key={value} value={value}>
+                        {info.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label-text">操作员</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="操作员姓名"
+                    value={formData.operator}
+                    onChange={(e) => setFormData(prev => ({ ...prev, operator: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pt-4">
+                <button type="submit" className="btn-primary flex-1">
+                  <Check className="w-4 h-4 mr-2" />
+                  {editingId ? '保存修改' : '添加记录'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowModal(false)}
+                >
+                  取消
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

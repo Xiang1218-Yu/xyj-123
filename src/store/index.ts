@@ -18,32 +18,32 @@ interface AppState {
   urns: Urn[];
   reminders: Reminder[];
 
-  addOwner: (owner: Omit<Owner, 'id'>) => void;
+  addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
   deleteOwner: (id: string) => void;
   getOwnerById: (id: string) => Owner | undefined;
 
-  addPet: (pet: Omit<Pet, 'id'>) => void;
+  addPet: (pet: Omit<Pet, 'id'>) => Pet;
   updatePet: (id: string, data: Partial<Pet>) => void;
   deletePet: (id: string) => void;
   getPetById: (id: string) => Pet | undefined;
 
-  addCeremony: (ceremony: Omit<Ceremony, 'id'>) => void;
+  addCeremony: (ceremony: Omit<Ceremony, 'id'>) => Ceremony;
   updateCeremony: (id: string, data: Partial<Ceremony>) => void;
   deleteCeremony: (id: string) => void;
   getCeremonyById: (id: string) => Ceremony | undefined;
 
-  addCremation: (cremation: Omit<Cremation, 'id'>) => void;
+  addCremation: (cremation: Omit<Cremation, 'id'>) => Cremation;
   updateCremation: (id: string, data: Partial<Cremation>) => void;
   deleteCremation: (id: string) => void;
   getCremationById: (id: string) => Cremation | undefined;
 
-  addUrn: (urn: Omit<Urn, 'id'>) => void;
+  addUrn: (urn: Omit<Urn, 'id'>) => Urn;
   updateUrn: (id: string, data: Partial<Urn>) => void;
   deleteUrn: (id: string) => void;
   getUrnById: (id: string) => Urn | undefined;
 
-  addReminder: (reminder: Omit<Reminder, 'id'>) => void;
+  addReminder: (reminder: Omit<Reminder, 'id'>) => Reminder;
   updateReminder: (id: string, data: Partial<Reminder>) => void;
   deleteReminder: (id: string) => void;
   getReminderById: (id: string) => Reminder | undefined;
@@ -62,10 +62,13 @@ export const useAppStore = create<AppState>()(
       urns: mockUrns,
       reminders: mockReminders,
 
-      addOwner: (owner) =>
+      addOwner: (owner) => {
+        const newOwner = { ...owner, id: generateId('owner') };
         set((state) => ({
-          owners: [...state.owners, { ...owner, id: generateId('owner') }]
-        })),
+          owners: [...state.owners, newOwner]
+        }));
+        return newOwner;
+      },
       updateOwner: (id, data) =>
         set((state) => ({
           owners: state.owners.map((o) =>
@@ -78,10 +81,13 @@ export const useAppStore = create<AppState>()(
         })),
       getOwnerById: (id) => get().owners.find((o) => o.id === id),
 
-      addPet: (pet) =>
+      addPet: (pet) => {
+        const newPet = { ...pet, id: generateId('pet') };
         set((state) => ({
-          pets: [...state.pets, { ...pet, id: generateId('pet') }]
-        })),
+          pets: [...state.pets, newPet]
+        }));
+        return newPet;
+      },
       updatePet: (id, data) =>
         set((state) => ({
           pets: state.pets.map((p) => (p.id === id ? { ...p, ...data } : p))
@@ -92,13 +98,13 @@ export const useAppStore = create<AppState>()(
         })),
       getPetById: (id) => get().pets.find((p) => p.id === id),
 
-      addCeremony: (ceremony) =>
+      addCeremony: (ceremony) => {
+        const newCeremony = { ...ceremony, id: generateId('ceremony') };
         set((state) => ({
-          ceremonies: [
-            ...state.ceremonies,
-            { ...ceremony, id: generateId('ceremony') }
-          ]
-        })),
+          ceremonies: [...state.ceremonies, newCeremony]
+        }));
+        return newCeremony;
+      },
       updateCeremony: (id, data) =>
         set((state) => ({
           ceremonies: state.ceremonies.map((c) =>
@@ -111,13 +117,13 @@ export const useAppStore = create<AppState>()(
         })),
       getCeremonyById: (id) => get().ceremonies.find((c) => c.id === id),
 
-      addCremation: (cremation) =>
+      addCremation: (cremation) => {
+        const newCremation = { ...cremation, id: generateId('cremation') };
         set((state) => ({
-          cremations: [
-            ...state.cremations,
-            { ...cremation, id: generateId('cremation') }
-          ]
-        })),
+          cremations: [...state.cremations, newCremation]
+        }));
+        return newCremation;
+      },
       updateCremation: (id, data) =>
         set((state) => ({
           cremations: state.cremations.map((c) =>
@@ -130,10 +136,13 @@ export const useAppStore = create<AppState>()(
         })),
       getCremationById: (id) => get().cremations.find((c) => c.id === id),
 
-      addUrn: (urn) =>
+      addUrn: (urn) => {
+        const newUrn = { ...urn, id: generateId('urn') };
         set((state) => ({
-          urns: [...state.urns, { ...urn, id: generateId('urn') }]
-        })),
+          urns: [...state.urns, newUrn]
+        }));
+        return newUrn;
+      },
       updateUrn: (id, data) =>
         set((state) => ({
           urns: state.urns.map((u) => (u.id === id ? { ...u, ...data } : u))
@@ -144,13 +153,13 @@ export const useAppStore = create<AppState>()(
         })),
       getUrnById: (id) => get().urns.find((u) => u.id === id),
 
-      addReminder: (reminder) =>
+      addReminder: (reminder) => {
+        const newReminder = { ...reminder, id: generateId('reminder') };
         set((state) => ({
-          reminders: [
-            ...state.reminders,
-            { ...reminder, id: generateId('reminder') }
-          ]
-        })),
+          reminders: [...state.reminders, newReminder]
+        }));
+        return newReminder;
+      },
       updateReminder: (id, data) =>
         set((state) => ({
           reminders: state.reminders.map((r) =>

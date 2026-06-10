@@ -11,7 +11,9 @@ import {
   Phone,
   Mail,
   PawPrint,
-  User
+  User,
+  AlertCircle,
+  Link as LinkIcon
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 
@@ -30,6 +32,18 @@ interface FormData {
   notes: string;
 }
 
+interface FormErrors {
+  petName?: string;
+  petBreed?: string;
+  petAge?: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  serviceType?: string;
+  expectedDate?: string;
+  expectedTimeSlot?: string;
+}
+
 const initialFormData: FormData = {
   petName: '',
   petBreed: '',
@@ -42,6 +56,8 @@ const initialFormData: FormData = {
   expectedTimeSlot: '',
   notes: ''
 };
+
+const initialFormErrors: FormErrors = {};
 
 const serviceOptions = [
   {
@@ -76,56 +92,131 @@ const timeSlots = [
   '17:00 - 18:30'
 ];
 
+const validatePhone = (phone: string): boolean => {
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  return phoneRegex.test(phone);
+};
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 export default function AppointmentBooking() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formErrors, setFormErrors] = useState<FormErrors>(initialFormErrors);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedInfo, setSubmittedInfo] = useState<{
+    petName: string;
+    date: string;
+    time: string;
+    bookingId: string;
+  } | null>(null);
+
   const { addPet, addOwner, addCeremony, addCremation } = useAppStore();
 
   const updateForm = (key: keyof FormData, value: string | ServiceType | null) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+    if (formErrors[key]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[key];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateStep1 = (): boolean => {
+    const errors: FormErrors = {};
+    if (!formData.petName.trim()) errors.petName = '请输入宠物姓名';
+    if (!formData.petBreed.trim()) errors.petBreed = '请输入品种';
+    if (!formData.petAge.trim()) errors.petAge = '请输入年龄';
+    if (!formData.ownerName.trim()) errors.ownerName = '请输入主人姓名';
+
+    if (!formData.ownerPhone.trim()) {
+      errors.ownerPhone = '请输入联系电话';
+    } else if (!validatePhone(formData.ownerPhone)) {
+      errors.ownerPhone = '请输入正确的11位手机号码';
+    }
+
+    if (!formData.ownerEmail.trim()) {
+      errors.ownerEmail = '请输入邮箱地址';
+    } else if (!validateEmail(formData.ownerEmail)) {
+      errors.ownerEmail = '请输入正确的邮箱格式';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateStep2 = (): boolean => {
+    if (formData.serviceType === null) {
+      setFormErrors({ serviceType: '请选择服务类型' });
+      return false;
+    }
+    setFormErrors({});
+    return true;
+  };
+
+  const validateStep3 = (): boolean => {
+    const errors: FormErrors = {};
+    if (!formData.expectedDate) errors.expectedDate = '请选择期望日期';
+    if (!formData.expectedTimeSlot) errors.expectedTimeSlot = '请选择期望时间段';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = () => {
-    const ownerId = `owner-temp-${Date.now()}`;
-    const petId = `pet-temp-${Date.now()}`;
+    if (!validateStep3()) return;
 
-    addOwner({
+    const newOwner = addOwner({
       name: formData.ownerName,
       phone: formData.ownerPhone,
       email: formData.ownerEmail
     });
 
-    addPet({
+    const newPet = addPet({
       name: formData.petName,
       breed: formData.petBreed,
       age: formData.petAge,
       gender: 'male',
       photoUrl: '',
-      ownerId,
+      ownerId: newOwner.id,
       createdAt: new Date().toISOString(),
       notes: formData.notes
     });
 
+    let bookingId = '';
+
     if (formData.serviceType === 'ceremony' || formData.serviceType === 'full') {
-      addCeremony({
-        petId,
+      const newCeremony = addCeremony({
+        petId: newPet.id,
         ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
         location: '待分配',
         participants: '待确认',
         status: 'pending',
         notes: formData.notes
       });
+      bookingId = newCeremony.id;
     }
 
     if (formData.serviceType === 'cremation' || formData.serviceType === 'full') {
-      addCremation({
-        petId,
+      const newCremation = addCremation({
+        petId: newPet.id,
         cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
         furnaceId: '待分配',
         status: 'pending'
       });
+      if (!bookingId) bookingId = newCremation.id;
     }
+
+    setSubmittedInfo({
+      petName: formData.petName,
+      date: formData.expectedDate,
+      time: formData.expectedTimeSlot,
+      bookingId
+    });
 
     setSubmitted(true);
   };
@@ -133,14 +224,8 @@ export default function AppointmentBooking() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return (
-          formData.petName.trim() &&
-          formData.petBreed.trim() &&
-          formData.petAge.trim() &&
-          formData.ownerName.trim() &&
-          formData.ownerPhone.trim() &&
-          formData.ownerEmail.trim()
-        );
+        return formData.petName.trim() && formData.petBreed.trim() && formData.petAge.trim() &&
+               formData.ownerName.trim() && formData.ownerPhone.trim() && formData.ownerEmail.trim();
       case 2:
         return formData.serviceType !== null;
       case 3:
@@ -151,7 +236,12 @@ export default function AppointmentBooking() {
   };
 
   const nextStep = () => {
-    if (currentStep < 3 && canProceed()) {
+    let isValid = false;
+    if (currentStep === 1) isValid = validateStep1();
+    else if (currentStep === 2) isValid = validateStep2();
+    else isValid = true;
+
+    if (currentStep < 3 && isValid) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -162,7 +252,15 @@ export default function AppointmentBooking() {
     }
   };
 
-  if (submitted) {
+  const resetForm = () => {
+    setSubmitted(false);
+    setSubmittedInfo(null);
+    setCurrentStep(1);
+    setFormData(initialFormData);
+    setFormErrors(initialFormErrors);
+  };
+
+  if (submitted && submittedInfo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-orange-50 flex items-center justify-center p-8">
         <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg w-full text-center animate-fade-in">
@@ -178,26 +276,26 @@ export default function AppointmentBooking() {
           <p className="text-sm text-neutral-muted mb-8">
             感谢您的信任，我们会以最温暖的方式陪伴您度过这段时光
           </p>
-          <div className="bg-amber-50 rounded-xl p-4 mb-8 text-left">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="bg-amber-50 rounded-xl p-5 mb-8 text-left">
+            <div className="flex items-center gap-2 mb-3">
               <PawPrint className="w-5 h-5 text-amber-600" />
-              <span className="font-medium text-neutral-text">{formData.petName}</span>
+              <span className="font-medium text-neutral-text">{submittedInfo.petName}</span>
             </div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <CalendarCheck className="w-5 h-5 text-amber-600" />
-              <span className="text-neutral-muted">{formData.expectedDate}</span>
+              <span className="text-neutral-muted">{submittedInfo.date}</span>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-5 h-5 text-amber-600" />
+              <span className="text-neutral-muted">{submittedInfo.time}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
-              <span className="text-neutral-muted">{formData.expectedTimeSlot}</span>
+              <LinkIcon className="w-5 h-5 text-amber-600" />
+              <span className="text-neutral-muted text-sm">预约编号：{submittedInfo.bookingId}</span>
             </div>
           </div>
           <button
-            onClick={() => {
-              setSubmitted(false);
-              setCurrentStep(1);
-              setFormData(initialFormData);
-            }}
+            onClick={resetForm}
             className="btn-primary w-full"
           >
             再次预约
@@ -268,31 +366,46 @@ export default function AppointmentBooking() {
                     <label className="label-text">宠物姓名 *</label>
                     <input
                       type="text"
-                      className="input-field"
+                      className={`input-field ${formErrors.petName ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="例如：豆豆"
                       value={formData.petName}
                       onChange={(e) => updateForm('petName', e.target.value)}
                     />
+                    {formErrors.petName && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.petName}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label-text">品种 *</label>
                     <input
                       type="text"
-                      className="input-field"
+                      className={`input-field ${formErrors.petBreed ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="例如：金毛寻回犬"
                       value={formData.petBreed}
                       onChange={(e) => updateForm('petBreed', e.target.value)}
                     />
+                    {formErrors.petBreed && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.petBreed}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label-text">年龄 *</label>
                     <input
                       type="text"
-                      className="input-field"
+                      className={`input-field ${formErrors.petAge ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="例如：8岁"
                       value={formData.petAge}
                       onChange={(e) => updateForm('petAge', e.target.value)}
                     />
+                    {formErrors.petAge && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.petAge}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -307,11 +420,16 @@ export default function AppointmentBooking() {
                     <label className="label-text">姓名 *</label>
                     <input
                       type="text"
-                      className="input-field"
+                      className={`input-field ${formErrors.ownerName ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="请输入您的姓名"
                       value={formData.ownerName}
                       onChange={(e) => updateForm('ownerName', e.target.value)}
                     />
+                    {formErrors.ownerName && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.ownerName}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label-text flex items-center gap-1">
@@ -319,11 +437,16 @@ export default function AppointmentBooking() {
                     </label>
                     <input
                       type="tel"
-                      className="input-field"
+                      className={`input-field ${formErrors.ownerPhone ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="请输入联系电话"
                       value={formData.ownerPhone}
                       onChange={(e) => updateForm('ownerPhone', e.target.value)}
                     />
+                    {formErrors.ownerPhone && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.ownerPhone}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label-text flex items-center gap-1">
@@ -331,11 +454,16 @@ export default function AppointmentBooking() {
                     </label>
                     <input
                       type="email"
-                      className="input-field"
+                      className={`input-field ${formErrors.ownerEmail ? 'border-red-400 focus:ring-red-400' : ''}`}
                       placeholder="请输入邮箱地址"
                       value={formData.ownerEmail}
                       onChange={(e) => updateForm('ownerEmail', e.target.value)}
                     />
+                    {formErrors.ownerEmail && (
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {formErrors.ownerEmail}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -350,6 +478,11 @@ export default function AppointmentBooking() {
               <p className="text-neutral-muted mb-6">
                 请选择适合您的服务类型
               </p>
+              {formErrors.serviceType && (
+                <p className="mb-4 text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" /> {formErrors.serviceType}
+                </p>
+              )}
 
               <div className="grid md:grid-cols-3 gap-4">
                 {serviceOptions.map((option) => {
@@ -417,11 +550,16 @@ export default function AppointmentBooking() {
                   </label>
                   <input
                     type="date"
-                    className="input-field max-w-xs"
+                    className={`input-field max-w-xs ${formErrors.expectedDate ? 'border-red-400 focus:ring-red-400' : ''}`}
                     value={formData.expectedDate}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => updateForm('expectedDate', e.target.value)}
                   />
+                  {formErrors.expectedDate && (
+                    <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {formErrors.expectedDate}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -444,12 +582,17 @@ export default function AppointmentBooking() {
                       </button>
                     ))}
                   </div>
+                  {formErrors.expectedTimeSlot && (
+                    <p className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {formErrors.expectedTimeSlot}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="label-text">备注</label>
                   <textarea
-                    className="input-field min-h-[120px] resize-none"
+                    className="input-field min-h-[100px] resize-none"
                     placeholder="如有特殊需求请在此说明..."
                     value={formData.notes}
                     onChange={(e) => updateForm('notes', e.target.value)}

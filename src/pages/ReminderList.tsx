@@ -10,7 +10,9 @@ import {
   Plus,
   X,
   PawPrint,
-  AlertCircle
+  AlertCircle,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
@@ -33,8 +35,10 @@ const initialForm: NewReminderForm = {
 };
 
 export default function ReminderList() {
-  const { reminders, pets, owners, addReminder, updateReminder } = useAppStore();
+  const { reminders, pets, owners, addReminder, updateReminder, deleteReminder } = useAppStore();
   const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<NewReminderForm>(initialForm);
 
   const isUpcoming = (dateStr: string) => {
@@ -74,18 +78,50 @@ export default function ReminderList() {
     if (!form.title.trim() || !form.petId || !form.remindDate) return;
 
     const pet = getPetById(form.petId);
-    addReminder({
-      petId: form.petId,
-      ownerId: pet?.ownerId || '',
-      title: form.title,
-      remindDate: form.remindDate,
-      remindType: form.remindType,
-      frequency: form.frequency,
-      enabled: true
-    });
+    if (isEditMode && editingId) {
+      updateReminder(editingId, {
+        petId: form.petId,
+        ownerId: pet?.ownerId || '',
+        title: form.title,
+        remindDate: form.remindDate,
+        remindType: form.remindType,
+        frequency: form.frequency
+      });
+    } else {
+      addReminder({
+        petId: form.petId,
+        ownerId: pet?.ownerId || '',
+        title: form.title,
+        remindDate: form.remindDate,
+        remindType: form.remindType,
+        frequency: form.frequency,
+        enabled: true
+      });
+    }
 
     setForm(initialForm);
     setShowModal(false);
+    setIsEditMode(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (reminder: Reminder) => {
+    setForm({
+      title: reminder.title,
+      petId: reminder.petId,
+      remindDate: reminder.remindDate,
+      remindType: reminder.remindType,
+      frequency: reminder.frequency
+    });
+    setEditingId(reminder.id);
+    setIsEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('确定要删除这条提醒吗？')) {
+      deleteReminder(id);
+    }
   };
 
   const toggleReminder = (reminder: Reminder) => {
@@ -209,16 +245,32 @@ export default function ReminderList() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => toggleReminder(reminder)}
-                    className="flex-shrink-0 p-1 rounded-lg hover:bg-primary-50 transition-colors"
-                  >
-                    {reminder.enabled ? (
-                      <ToggleRight className="w-10 h-10 text-amber-500" />
-                    ) : (
-                      <ToggleLeft className="w-10 h-10 text-gray-300" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleEdit(reminder)}
+                      className="p-2 rounded-lg hover:bg-primary-50 transition-colors text-neutral-muted hover:text-primary-600"
+                      title="编辑"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(reminder.id)}
+                      className="p-2 rounded-lg hover:bg-red-50 transition-colors text-neutral-muted hover:text-red-500"
+                      title="删除"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => toggleReminder(reminder)}
+                      className="flex-shrink-0 p-1 rounded-lg hover:bg-primary-50 transition-colors"
+                    >
+                      {reminder.enabled ? (
+                        <ToggleRight className="w-10 h-10 text-amber-500" />
+                      ) : (
+                        <ToggleLeft className="w-10 h-10 text-gray-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -231,13 +283,19 @@ export default function ReminderList() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in">
             <div className="flex items-center justify-between p-6 border-b border-primary-100">
               <h2 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
-                <Plus className="w-5 h-5 text-amber-500" />
-                新增提醒
+                {isEditMode ? (
+                  <Edit2 className="w-5 h-5 text-amber-500" />
+                ) : (
+                  <Plus className="w-5 h-5 text-amber-500" />
+                )}
+                {isEditMode ? '编辑提醒' : '新增提醒'}
               </h2>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setForm(initialForm);
+                  setIsEditMode(false);
+                  setEditingId(null);
                 }}
                 className="p-1.5 rounded-lg hover:bg-primary-50 transition-colors"
               >
@@ -348,6 +406,8 @@ export default function ReminderList() {
                 onClick={() => {
                   setShowModal(false);
                   setForm(initialForm);
+                  setIsEditMode(false);
+                  setEditingId(null);
                 }}
                 className="btn-secondary"
               >
@@ -358,7 +418,7 @@ export default function ReminderList() {
                 disabled={!form.title.trim() || !form.petId || !form.remindDate}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                确认添加
+                {isEditMode ? '确认修改' : '确认添加'}
               </button>
             </div>
           </div>

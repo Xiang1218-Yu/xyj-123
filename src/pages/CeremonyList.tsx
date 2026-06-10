@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeartHandshake, Calendar, MapPin, Users, Edit, Trash2, Plus, Eye } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { mockCeremonies, mockPets } from '@/data/mockData';
+import { useAppStore } from '@/store';
 import type { Ceremony } from '@/shared/types';
 import { cn } from '@/lib/utils';
 
@@ -25,14 +25,16 @@ const tabs: { key: CeremonyStatus; label: string }[] = [
 export default function CeremonyList() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<CeremonyStatus>('all');
-  const [ceremonies] = useState<Ceremony[]>(mockCeremonies);
+  const ceremonies = useAppStore(state => state.ceremonies);
+  const pets = useAppStore(state => state.pets);
+  const deleteCeremony = useAppStore(state => state.deleteCeremony);
 
   const filteredCeremonies = activeTab === 'all'
     ? ceremonies
     : ceremonies.filter(c => c.status === activeTab);
 
   const getPetName = (petId: string) => {
-    const pet = mockPets.find(p => p.id === petId);
+    const pet = pets.find(p => p.id === petId);
     return pet?.name || '未知';
   };
 
@@ -47,37 +49,43 @@ export default function CeremonyList() {
     });
   };
 
+  const handleDelete = (id: string) => {
+    if (confirm('确定要删除这条仪式记录吗？')) {
+      deleteCeremony(id);
+    }
+  };
+
   return (
     <div>
       <PageHeader
-      title="告别仪式安排"
-      description="管理所有告别仪式的时间和安排"
-      actions={
-        <button
-          className="btn-primary"
-          onClick={() => navigate('/ceremony/new')}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          新增仪式
-        </button>
-      }
-    />
+        title="告别仪式安排"
+        description="管理所有告别仪式的时间和安排"
+        actions={
+          <button
+            className="btn-primary"
+            onClick={() => navigate('/ceremonies/new')}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            新增仪式
+          </button>
+        }
+      />
 
       <div className="mb-6">
         <div className="flex gap-2 mb-6">
           {tabs.map(tab => (
             <button
               key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'px-5 py-2 rounded-lg font-medium transition-all duration-200',
-              activeTab === tab.key
-                ? 'bg-primary-800 text-white'
-                : 'bg-white text-neutral-text hover:bg-primary-50 border border-primary-200'
-            )}
-          >
-            {tab.label}
-          </button>
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                'px-5 py-2 rounded-lg font-medium transition-all duration-200',
+                activeTab === tab.key
+                  ? 'bg-primary-800 text-white'
+                  : 'bg-white text-neutral-text hover:bg-primary-50 border border-primary-200'
+              )}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
 
@@ -107,70 +115,83 @@ export default function CeremonyList() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCeremonies.map(ceremony => (
-                  <tr
-                    key={ceremony.id}
-                    className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">
-                          {formatDateTime(ceremony.ceremonyTime)}
-                        </span>
+                {filteredCeremonies.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-3">
+                        <HeartHandshake className="w-7 h-7 text-primary-400" />
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        className="text-sm font-medium text-primary-800 hover:text-primary-600 transition-colors"
-                        onClick={() => navigate(`/pets/${ceremony.petId}`)}
-                      >
-                        <HeartHandshake className="w-4 h-4 inline mr-1 text-accent" />
-                        {getPetName(ceremony.petId)}
-                      </button>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">{ceremony.location}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className={cn('status-badge', statusMap[ceremony.status].className)}>
-                        {statusMap[ceremony.status].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary-400" />
-                        <span className="text-sm text-neutral-text">{ceremony.participants}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
-                          title="查看详情"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
-                          onClick={() => navigate(`/ceremony/edit/${ceremony.id}`)}
-                          title="编辑"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                          title="删除"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <p className="text-neutral-muted">暂无仪式记录</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredCeremonies.map(ceremony => (
+                    <tr
+                      key={ceremony.id}
+                      className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">
+                            {formatDateTime(ceremony.ceremonyTime)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          className="text-sm font-medium text-primary-800 hover:text-primary-600 transition-colors"
+                          onClick={() => navigate(`/pets/${ceremony.petId}`)}
+                        >
+                          <HeartHandshake className="w-4 h-4 inline mr-1 text-accent" />
+                          {getPetName(ceremony.petId)}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">{ceremony.location}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={cn('status-badge', statusMap[ceremony.status].className)}>
+                          {statusMap[ceremony.status].label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">{ceremony.participants}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
+                            onClick={() => navigate(`/pets/${ceremony.petId}`)}
+                            title="查看详情"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-primary-600 hover:bg-primary-100 transition-colors"
+                            onClick={() => navigate(`/ceremonies/${ceremony.id}/edit`)}
+                            title="编辑"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={() => handleDelete(ceremony.id)}
+                            title="删除"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

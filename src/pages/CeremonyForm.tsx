@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HeartHandshake, Calendar, MapPin, Users, FileText, ArrowLeft, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { mockPets, mockCeremonies } from '@/data/mockData';
+import { useAppStore } from '@/store';
 import type { Ceremony } from '@/shared/types';
 
 const statusOptions: { value: Ceremony['status']; label: string }[] = [
@@ -16,6 +16,11 @@ export default function CeremonyForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
+
+  const pets = useAppStore(state => state.pets);
+  const addCeremony = useAppStore(state => state.addCeremony);
+  const updateCeremony = useAppStore(state => state.updateCeremony);
+  const getCeremonyById = useAppStore(state => state.getCeremonyById);
 
   const [formData, setFormData] = useState<{
     petId: string;
@@ -34,8 +39,8 @@ export default function CeremonyForm() {
   });
 
   useEffect(() => {
-    if (isEdit) {
-      const ceremony = mockCeremonies.find(c => c.id === id);
+    if (isEdit && id) {
+      const ceremony = getCeremonyById(id);
       if (ceremony) {
         setFormData({
           petId: ceremony.petId,
@@ -47,7 +52,7 @@ export default function CeremonyForm() {
         });
       }
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, getCeremonyById]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -55,7 +60,24 @@ export default function CeremonyForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/ceremony');
+    if (!formData.petId || !formData.ceremonyTime || !formData.location || !formData.participants) {
+      alert('请填写完整填写所有必填项');
+      return;
+    }
+    const ceremonyData = {
+      petId: formData.petId,
+      ceremonyTime: formData.ceremonyTime + ':00',
+      location: formData.location,
+      participants: formData.participants,
+      status: formData.status,
+      notes: formData.notes
+    };
+    if (isEdit && id) {
+      updateCeremony(id, ceremonyData);
+    } else {
+      addCeremony(ceremonyData);
+    }
+    navigate('/ceremonies');
   };
 
   return (
@@ -66,7 +88,7 @@ export default function CeremonyForm() {
         actions={
           <button
             className="btn-secondary"
-            onClick={() => navigate('/ceremony')}
+            onClick={() => navigate('/ceremonies')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回列表
@@ -80,7 +102,7 @@ export default function CeremonyForm() {
             <div>
               <label className="label-text">
                 <HeartHandshake className="w-4 h-4 inline mr-1 text-accent" />
-                选择宠物
+                选择宠物 *
               </label>
               <select
                 className="input-field"
@@ -89,9 +111,9 @@ export default function CeremonyForm() {
                 required
               >
                 <option value="">请选择宠物</option>
-                {mockPets.map(pet => (
+                {pets.map(pet => (
                   <option key={pet.id} value={pet.id}>
-                    {pet.name}（{pet.breed}）
+                  {pet.name}（{pet.breed}）
                   </option>
                 ))}
               </select>
@@ -100,7 +122,7 @@ export default function CeremonyForm() {
             <div>
               <label className="label-text">
                 <Calendar className="w-4 h-4 inline mr-1 text-accent" />
-                仪式时间
+                仪式时间 *
               </label>
               <input
                 type="datetime-local"
@@ -114,7 +136,7 @@ export default function CeremonyForm() {
             <div>
               <label className="label-text">
                 <MapPin className="w-4 h-4 inline mr-1 text-accent" />
-                地点
+                地点 *
               </label>
               <input
                 type="text"
@@ -129,7 +151,7 @@ export default function CeremonyForm() {
             <div>
               <label className="label-text">
                 <Users className="w-4 h-4 inline mr-1 text-accent" />
-                参与人员
+                参与人员 *
               </label>
               <input
                 type="text"
@@ -181,7 +203,7 @@ export default function CeremonyForm() {
             <button
               type="button"
               className="btn-secondary"
-              onClick={() => navigate('/ceremony')}
+              onClick={() => navigate('/ceremonies')}
             >
               取消
             </button>

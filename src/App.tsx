@@ -25,6 +25,7 @@ export default function App() {
           <Route path="/pets/:id/edit" element={<PetForm />} />
           <Route path="/ceremonies" element={<CeremonyList />} />
           <Route path="/ceremonies/new" element={<CeremonyForm />} />
+          <Route path="/ceremonies/:id/edit" element={<CeremonyForm />} />
           <Route path="/cremations" element={<CremationList />} />
           <Route path="/urns" element={<UrnStorage />} />
           <Route path="/appointments" element={<Appointments />} />
