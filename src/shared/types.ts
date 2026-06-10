@@ -58,3 +58,30 @@ export interface Reminder {
   frequency: 'once' | 'yearly';
   enabled: boolean;
 }
+
+export interface ServiceItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: 'transport' | 'ceremony' | 'cremation' | 'memorial' | 'other';
+  icon?: string;
+}
+
+export interface PackageServiceItem {
+  serviceItemId: string;
+  included: boolean;
+  customPrice?: number;
+}
+
+export interface FuneralPackage {
+  id: string;
+  name: string;
+  description: string;
+  coverImage?: string;
+  basePrice: number;
+  isRecommended?: boolean;
+  serviceItems: PackageServiceItem[];
+  createdAt: string;
+  updatedAt: string;
+}

@@ -11,6 +11,8 @@ import UrnStorage from "@/pages/UrnStorage";
 import Appointments from "@/pages/Appointments";
 import ReminderList from "@/pages/ReminderList";
 import AppointmentBooking from "@/pages/AppointmentBooking";
+import PackageList from "@/pages/PackageList";
+import PackageForm from "@/pages/PackageForm";
 
 export default function App() {
   return (
@@ -30,6 +32,9 @@ export default function App() {
           <Route path="/urns" element={<UrnStorage />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reminders" element={<ReminderList />} />
+          <Route path="/packages" element={<PackageList />} />
+          <Route path="/packages/new" element={<PackageForm />} />
+          <Route path="/packages/:id/edit" element={<PackageForm />} />
         </Route>
       </Routes>
     </Router>

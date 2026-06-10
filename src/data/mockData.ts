@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -222,5 +222,135 @@ export const mockReminders: Reminder[] = [
     remindType: 'both',
     frequency: 'once',
     enabled: true
+  }
+];
+
+export const mockServiceItems: ServiceItem[] = [
+  {
+    id: 'service-001',
+    name: '接送服务',
+    description: '专车上门接送爱宠遗体至服务中心',
+    price: 300,
+    category: 'transport'
+  },
+  {
+    id: 'service-002',
+    name: '鲜花布置',
+    description: '追思堂鲜花装饰，营造温馨氛围',
+    price: 500,
+    category: 'ceremony'
+  },
+  {
+    id: 'service-003',
+    name: '视频录制',
+    description: '全程高清录制告别仪式，永久珍藏回忆',
+    price: 800,
+    category: 'memorial'
+  },
+  {
+    id: 'service-004',
+    name: '专业告别仪式',
+    description: '主持人引导的庄重告别仪式',
+    price: 1200,
+    category: 'ceremony'
+  },
+  {
+    id: 'service-005',
+    name: '独立火化',
+    description: '单炉独立火化，确保骨灰纯净完整',
+    price: 2000,
+    category: 'cremation'
+  },
+  {
+    id: 'service-006',
+    name: '精美骨灰盒',
+    description: '高品质实木骨灰盒，多种款式可选',
+    price: 600,
+    category: 'memorial'
+  },
+  {
+    id: 'service-007',
+    name: '骨灰存放1年',
+    description: '骨灰堂规范存放，专人管理',
+    price: 365,
+    category: 'memorial'
+  },
+  {
+    id: 'service-008',
+    name: '纪念照片打印',
+    description: '专业冲印爱宠纪念照片',
+    price: 100,
+    category: 'memorial'
+  },
+  {
+    id: 'service-009',
+    name: '礼仪人员服务',
+    description: '专业礼仪人员全程引导服务',
+    price: 400,
+    category: 'ceremony'
+  }
+];
+
+export const mockFuneralPackages: FuneralPackage[] = [
+  {
+    id: 'package-001',
+    name: '温馨基础套餐',
+    description: '简洁温馨的基础告别服务，适合预算有限的家庭',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20simple%20and%20warm%20pet%20funeral%20ceremony%20setup%20with%20soft%20lighting%20and%20white%20flowers%2C%20peaceful%20atmosphere&image_size=landscape_16_9',
+    basePrice: 1999,
+    serviceItems: [
+      { serviceItemId: 'service-001', included: true },
+      { serviceItemId: 'service-004', included: true },
+      { serviceItemId: 'service-005', included: true },
+      { serviceItemId: 'service-006', included: true },
+      { serviceItemId: 'service-002', included: false },
+      { serviceItemId: 'service-003', included: false },
+      { serviceItemId: 'service-007', included: false },
+      { serviceItemId: 'service-008', included: false },
+      { serviceItemId: 'service-009', included: false }
+    ],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'package-002',
+    name: '臻爱尊享套餐',
+    description: '全方位贴心服务，给爱宠最尊贵的告别',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=An%20elegant%20and%20luxurious%20pet%20memorial%20ceremony%20with%20beautiful%20flower%20arrangements%20and%20candles%2C%20warm%20golden%20lighting&image_size=landscape_16_9',
+    basePrice: 4999,
+    isRecommended: true,
+    serviceItems: [
+      { serviceItemId: 'service-001', included: true },
+      { serviceItemId: 'service-002', included: true },
+      { serviceItemId: 'service-003', included: true },
+      { serviceItemId: 'service-004', included: true },
+      { serviceItemId: 'service-005', included: true },
+      { serviceItemId: 'service-006', included: true },
+      { serviceItemId: 'service-007', included: true },
+      { serviceItemId: 'service-008', included: true },
+      { serviceItemId: 'service-009', included: true }
+    ],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'package-003',
+    name: '简约环保套餐',
+    description: '简约而不失温度，环保理念的告别方式',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20minimalist%20eco-friendly%20pet%20memorial%20with%20green%20plants%20and%20natural%20elements%2C%20serene%20outdoor%20setting&image_size=landscape_16_9',
+    basePrice: 2999,
+    serviceItems: [
+      { serviceItemId: 'service-001', included: true },
+      { serviceItemId: 'service-004', included: true },
+      { serviceItemId: 'service-005', included: true },
+      { serviceItemId: 'service-006', included: true },
+      { serviceItemId: 'service-007', included: true },
+      { serviceItemId: 'service-002', included: false },
+      { serviceItemId: 'service-003', included: false },
+      { serviceItemId: 'service-008', included: false },
+      { serviceItemId: 'service-009', included: false }
+    ],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
   }
 ];

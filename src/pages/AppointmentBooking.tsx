@@ -4,8 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
-  Heart,
-  Flame,
+  CheckCircle2,
+  XCircle,
   Sparkles,
   Clock,
   Phone,
@@ -13,11 +13,10 @@ import {
   PawPrint,
   User,
   AlertCircle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Image
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-
-type ServiceType = 'ceremony' | 'cremation' | 'full';
 
 interface FormData {
   petName: string;
@@ -26,7 +25,7 @@ interface FormData {
   ownerName: string;
   ownerPhone: string;
   ownerEmail: string;
-  serviceType: ServiceType | null;
+  packageId: string | null;
   expectedDate: string;
   expectedTimeSlot: string;
   notes: string;
@@ -39,7 +38,7 @@ interface FormErrors {
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
-  serviceType?: string;
+  packageId?: string;
   expectedDate?: string;
   expectedTimeSlot?: string;
 }
@@ -51,38 +50,13 @@ const initialFormData: FormData = {
   ownerName: '',
   ownerPhone: '',
   ownerEmail: '',
-  serviceType: null,
+  packageId: null,
   expectedDate: '',
   expectedTimeSlot: '',
   notes: ''
 };
 
 const initialFormErrors: FormErrors = {};
-
-const serviceOptions = [
-  {
-    type: 'ceremony' as ServiceType,
-    title: '告别仪式',
-    description: '温馨庄重的告别仪式，在专属追思堂中与爱宠做最后的道别',
-    icon: Heart,
-    price: '¥1,999'
-  },
-  {
-    type: 'cremation' as ServiceType,
-    title: '火化服务',
-    description: '独立火化炉，全程可观看，保证骨灰纯净完整',
-    icon: Flame,
-    price: '¥2,999'
-  },
-  {
-    type: 'full' as ServiceType,
-    title: '全套服务',
-    description: '告别仪式 + 火化服务 + 骨灰存放，一站式贴心安排',
-    icon: Sparkles,
-    price: '¥4,999',
-    recommended: true
-  }
-];
 
 const timeSlots = [
   '09:00 - 10:30',
@@ -114,9 +88,18 @@ export default function AppointmentBooking() {
     bookingId: string;
   } | null>(null);
 
-  const { addPet, addOwner, addCeremony, addCremation } = useAppStore();
+  const {
+    addPet,
+    addOwner,
+    addCeremony,
+    addCremation,
+    funeralPackages,
+    serviceItems,
+    calculatePackagePrice,
+    getFuneralPackageById
+  } = useAppStore();
 
-  const updateForm = (key: keyof FormData, value: string | ServiceType | null) => {
+  const updateForm = (key: keyof FormData, value: string | null) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (formErrors[key]) {
       setFormErrors((prev) => {
@@ -151,8 +134,8 @@ export default function AppointmentBooking() {
   };
 
   const validateStep2 = (): boolean => {
-    if (formData.serviceType === null) {
-      setFormErrors({ serviceType: '请选择服务类型' });
+    if (formData.packageId === null) {
+      setFormErrors({ packageId: '请选择服务套餐' });
       return false;
     }
     setFormErrors({});
@@ -188,30 +171,31 @@ export default function AppointmentBooking() {
     });
 
     let bookingId = '';
-    const serviceLabelMap: Record<ServiceType, string> = {
-      ceremony: '告别仪式（待分配场地）',
-      cremation: '火化服务（暂用仪式登记）',
-      full: '全套服务（待分配场地）'
-    };
+    const selectedPackage = getFuneralPackageById(formData.packageId!);
+    const packageName = selectedPackage?.name ?? '未知套餐';
 
-    // 无论什么服务类型都创建 ceremony 记录，确保预约列表中可见
     const newCeremony = addCeremony({
       petId: newPet.id,
       ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
-      location: serviceLabelMap[formData.serviceType!],
+      location: `${packageName}（待分配场地）`,
       participants: '待确认',
       status: 'pending',
       notes: formData.notes
     });
     bookingId = newCeremony.id;
 
-    if (formData.serviceType === 'cremation' || formData.serviceType === 'full') {
-      addCremation({
-        petId: newPet.id,
-        cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
-        furnaceId: '待分配',
-        status: 'pending'
-      });
+    if (selectedPackage) {
+      const hasCremation = selectedPackage.serviceItems.some(
+        (psi) => psi.included && serviceItems.find((s) => s.id === psi.serviceItemId)?.category === 'cremation'
+      );
+      if (hasCremation) {
+        addCremation({
+          petId: newPet.id,
+          cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
+          furnaceId: '待分配',
+          status: 'pending'
+        });
+      }
     }
 
     setSubmittedInfo({
@@ -230,7 +214,7 @@ export default function AppointmentBooking() {
         return formData.petName.trim() && formData.petBreed.trim() && formData.petAge.trim() &&
                formData.ownerName.trim() && formData.ownerPhone.trim() && formData.ownerEmail.trim();
       case 2:
-        return formData.serviceType !== null;
+        return formData.packageId !== null;
       case 3:
         return formData.expectedDate && formData.expectedTimeSlot;
       default:
@@ -476,63 +460,149 @@ export default function AppointmentBooking() {
           {currentStep === 2 && (
             <div className="animate-fade-in">
               <h2 className="font-serif text-2xl font-bold text-neutral-text mb-2">
-                服务选择
+                套餐对比选择
               </h2>
               <p className="text-neutral-muted mb-6">
-                请选择适合您的服务类型
+                横向对比各套餐服务内容，选择最适合您的套餐
               </p>
-              {formErrors.serviceType && (
+              {formErrors.packageId && (
                 <p className="mb-4 text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" /> {formErrors.serviceType}
+                  <AlertCircle className="w-4 h-4" /> {formErrors.packageId}
                 </p>
               )}
 
-              <div className="grid md:grid-cols-3 gap-4">
-                {serviceOptions.map((option) => {
-                  const Icon = option.icon;
-                  const isSelected = formData.serviceType === option.type;
-                  return (
-                    <div
-                      key={option.type}
-                      onClick={() => updateForm('serviceType', option.type)}
-                      className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all duration-200 ${
-                        isSelected
-                          ? 'border-amber-500 bg-amber-50 shadow-lg scale-[1.02]'
-                          : 'border-primary-100 bg-white hover:border-primary-300 hover:shadow-md'
-                      }`}
-                    >
-                      {option.recommended && (
-                        <div className="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                          推荐
+              {funeralPackages.length === 0 ? (
+                <div className="text-center py-12 bg-primary-50 rounded-2xl">
+                  <Sparkles className="w-12 h-12 mx-auto text-primary-300 mb-3" />
+                  <p className="text-neutral-muted">暂无可用套餐，请联系管理员</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="flex gap-4 min-w-max pb-2">
+                    {funeralPackages.map((pkg) => {
+                      const isSelected = formData.packageId === pkg.id;
+                      const totalPrice = calculatePackagePrice(pkg);
+                      const includedServices = pkg.serviceItems.filter((s) => s.included);
+
+                      return (
+                        <div
+                          key={pkg.id}
+                          onClick={() => updateForm('packageId', pkg.id)}
+                          className={`relative flex-shrink-0 w-72 cursor-pointer rounded-2xl border-2 transition-all duration-200 overflow-hidden ${
+                            isSelected
+                              ? 'border-amber-500 shadow-xl scale-[1.02] ring-4 ring-amber-100'
+                              : 'border-primary-100 bg-white hover:border-primary-300 hover:shadow-lg'
+                          }`}
+                        >
+                          {pkg.isRecommended && (
+                            <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              推荐
+                            </div>
+                          )}
+
+                          <div className="relative h-36 bg-primary-100">
+                            {pkg.coverImage ? (
+                              <img
+                                src={pkg.coverImage}
+                                alt={pkg.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Image className="w-10 h-10 text-primary-300" />
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="absolute top-3 left-3 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                                <CheckCircle className="w-5 h-5 text-white" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="p-5">
+                            <h3 className="font-serif text-xl font-bold text-neutral-text mb-2">
+                              {pkg.name}
+                            </h3>
+                            <p className="text-sm text-neutral-muted mb-4 leading-relaxed line-clamp-2 h-10">
+                              {pkg.description}
+                            </p>
+
+                            <div className="flex items-baseline gap-1 mb-4">
+                              <span className="text-3xl font-bold text-amber-600">
+                                ¥{totalPrice.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-neutral-muted">起</span>
+                            </div>
+
+                            <div className="border-t border-primary-100 pt-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-medium text-neutral-text">
+                                  包含服务
+                                </span>
+                                <span className="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+                                  {includedServices.length} 项
+                                </span>
+                              </div>
+                              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                {serviceItems.map((item) => {
+                                  const psi = pkg.serviceItems.find(
+                                    (s) => s.serviceItemId === item.id
+                                  );
+                                  const included = psi?.included ?? false;
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className="flex items-center justify-between text-sm"
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        {included ? (
+                                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                        ) : (
+                                          <XCircle className="w-4 h-4 text-neutral-200 flex-shrink-0" />
+                                        )}
+                                        <span
+                                          className={`truncate ${
+                                            included
+                                              ? 'text-neutral-text'
+                                              : 'text-neutral-muted line-through'
+                                          }`}
+                                        >
+                                          {item.name}
+                                        </span>
+                                      </div>
+                                      {included && (
+                                        <span className="text-xs text-neutral-muted flex-shrink-0 ml-2">
+                                          ¥{psi?.customPrice ?? item.price}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateForm('packageId', pkg.id);
+                              }}
+                              className={`w-full mt-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                                isSelected
+                                  ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md'
+                                  : 'bg-primary-50 text-neutral-text border border-primary-200 hover:bg-primary-100'
+                              }`}
+                            >
+                              {isSelected ? '✓ 已选择' : '选择此套餐'}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                          isSelected
-                            ? 'bg-gradient-to-br from-amber-500 to-rose-500 text-white'
-                            : 'bg-amber-100 text-amber-600'
-                        }`}
-                      >
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <h3 className="font-semibold text-lg text-neutral-text mb-2">
-                        {option.title}
-                      </h3>
-                      <p className="text-sm text-neutral-muted mb-4 leading-relaxed">
-                        {option.description}
-                      </p>
-                      <div className="text-2xl font-bold text-amber-600">
-                        {option.price}
-                      </div>
-                      {isSelected && (
-                        <div className="absolute top-4 left-4">
-                          <CheckCircle className="w-6 h-6 text-amber-500" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -618,9 +688,9 @@ export default function AppointmentBooking() {
                       <span className="text-neutral-text font-medium">{formData.ownerName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-neutral-muted">服务：</span>
+                      <span className="text-neutral-muted">套餐：</span>
                       <span className="text-neutral-text font-medium">
-                        {serviceOptions.find((o) => o.type === formData.serviceType)?.title || '-'}
+                        {getFuneralPackageById(formData.packageId!)?.name || '-'}
                       </span>
                     </div>
                     <div className="flex justify-between">

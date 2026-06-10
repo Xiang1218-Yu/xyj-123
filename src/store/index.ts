@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage } from '../shared/types';
 import {
   mockOwners,
   mockPets,
   mockCeremonies,
   mockCremations,
   mockUrns,
-  mockReminders
+  mockReminders,
+  mockServiceItems,
+  mockFuneralPackages
 } from '../data/mockData';
 
 interface AppState {
@@ -17,6 +19,8 @@ interface AppState {
   cremations: Cremation[];
   urns: Urn[];
   reminders: Reminder[];
+  serviceItems: ServiceItem[];
+  funeralPackages: FuneralPackage[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -47,6 +51,17 @@ interface AppState {
   updateReminder: (id: string, data: Partial<Reminder>) => void;
   deleteReminder: (id: string) => void;
   getReminderById: (id: string) => Reminder | undefined;
+
+  addServiceItem: (item: Omit<ServiceItem, 'id'>) => ServiceItem;
+  updateServiceItem: (id: string, data: Partial<ServiceItem>) => void;
+  deleteServiceItem: (id: string) => void;
+  getServiceItemById: (id: string) => ServiceItem | undefined;
+
+  addFuneralPackage: (pkg: Omit<FuneralPackage, 'id' | 'createdAt' | 'updatedAt'>) => FuneralPackage;
+  updateFuneralPackage: (id: string, data: Partial<FuneralPackage>) => void;
+  deleteFuneralPackage: (id: string) => void;
+  getFuneralPackageById: (id: string) => FuneralPackage | undefined;
+  calculatePackagePrice: (pkg: FuneralPackage) => number;
 }
 
 const generateId = (prefix: string) =>
@@ -61,6 +76,8 @@ export const useAppStore = create<AppState>()(
       cremations: mockCremations,
       urns: mockUrns,
       reminders: mockReminders,
+      serviceItems: mockServiceItems,
+      funeralPackages: mockFuneralPackages,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -170,7 +187,64 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           reminders: state.reminders.filter((r) => r.id !== id)
         })),
-      getReminderById: (id) => get().reminders.find((r) => r.id === id)
+      getReminderById: (id) => get().reminders.find((r) => r.id === id),
+
+      addServiceItem: (item) => {
+        const newItem = { ...item, id: generateId('service') };
+        set((state) => ({
+          serviceItems: [...state.serviceItems, newItem]
+        }));
+        return newItem;
+      },
+      updateServiceItem: (id, data) =>
+        set((state) => ({
+          serviceItems: state.serviceItems.map((s) =>
+            s.id === id ? { ...s, ...data } : s
+          )
+        })),
+      deleteServiceItem: (id) =>
+        set((state) => ({
+          serviceItems: state.serviceItems.filter((s) => s.id !== id)
+        })),
+      getServiceItemById: (id) => get().serviceItems.find((s) => s.id === id),
+
+      addFuneralPackage: (pkg) => {
+        const now = new Date().toISOString();
+        const newPkg: FuneralPackage = {
+          ...pkg,
+          id: generateId('package'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          funeralPackages: [...state.funeralPackages, newPkg]
+        }));
+        return newPkg;
+      },
+      updateFuneralPackage: (id, data) =>
+        set((state) => ({
+          funeralPackages: state.funeralPackages.map((p) =>
+            p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
+          )
+        })),
+      deleteFuneralPackage: (id) =>
+        set((state) => ({
+          funeralPackages: state.funeralPackages.filter((p) => p.id !== id)
+        })),
+      getFuneralPackageById: (id) => get().funeralPackages.find((p) => p.id === id),
+
+      calculatePackagePrice: (pkg) => {
+        let total = pkg.basePrice;
+        pkg.serviceItems.forEach((psi) => {
+          if (psi.included) {
+            const serviceItem = get().serviceItems.find((s) => s.id === psi.serviceItemId);
+            if (serviceItem) {
+              total += psi.customPrice ?? serviceItem.price;
+            }
+          }
+        });
+        return total;
+      }
     }),
     {
       name: 'xyj-123-storage',
@@ -180,7 +254,9 @@ export const useAppStore = create<AppState>()(
         ceremonies: state.ceremonies,
         cremations: state.cremations,
         urns: state.urns,
-        reminders: state.reminders
+        reminders: state.reminders,
+        serviceItems: state.serviceItems,
+        funeralPackages: state.funeralPackages
       })
     }
   )

@@ -7,12 +7,14 @@ import {
   Archive,
   CalendarCheck,
   Bell,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "仪表盘", icon: House },
   { to: "/pets", label: "宠物档案", icon: PawPrint },
+  { to: "/packages", label: "套餐管理", icon: Package },
   { to: "/ceremonies", label: "告别仪式", icon: HeartHandshake },
   { to: "/cremations", label: "火化管理", icon: Flame },
   { to: "/urns", label: "骨灰存放", icon: Archive },
