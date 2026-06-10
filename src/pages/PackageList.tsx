@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package,
@@ -9,7 +9,9 @@ import {
   XCircle,
   Sparkles,
   Image,
-  Search
+  Search,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageHeader from '@/components/PageHeader';
@@ -24,7 +26,7 @@ export default function PackageList() {
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FuneralPackage | null>(null);
 
   const filteredPackages = funeralPackages.filter((pkg) =>
     pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,13 +41,26 @@ export default function PackageList() {
     return pkg.serviceItems.filter((s) => s.included);
   };
 
-  const handleDelete = (id: string) => {
-    deleteFuneralPackage(id);
-    setDeleteConfirm(null);
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteFuneralPackage(deleteTarget.id);
+      setDeleteTarget(null);
+    }
   };
 
+  useEffect(() => {
+    if (deleteTarget) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [deleteTarget]);
+
   return (
-    <div>
+    <div className="relative">
       <PageHeader
         title="丧葬套餐管理"
         description="管理宠物丧葬服务套餐，自定义服务项和价格"
@@ -190,34 +205,94 @@ export default function PackageList() {
                     <Edit2 className="w-4 h-4" />
                     编辑
                   </Link>
-                  {deleteConfirm === pkg.id ? (
-                    <>
-                      <button
-                        onClick={() => handleDelete(pkg.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
-                      >
-                        确认删除
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-neutral-text bg-neutral-100 hover:bg-neutral-200 transition-colors"
-                      >
-                        取消
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(pkg.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      删除
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setDeleteTarget(pkg)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    删除
+                  </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-5 border-b border-primary-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-neutral-text">
+                  确认删除
+                </h3>
+              </div>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="p-2 text-neutral-muted hover:text-neutral-text hover:bg-primary-50 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <p className="text-neutral-text mb-4">
+                您确定要删除以下套餐吗？此操作无法撤销。
+              </p>
+              <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
+                    {deleteTarget.coverImage ? (
+                      <img
+                        src={deleteTarget.coverImage}
+                        alt={deleteTarget.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-primary-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-neutral-text">
+                      {deleteTarget.name}
+                    </p>
+                    <p className="text-sm text-neutral-muted line-clamp-2">
+                      {deleteTarget.description}
+                    </p>
+                    <p className="text-sm text-amber-600 font-medium mt-1">
+                      ¥{calculatePackagePrice(deleteTarget).toLocaleString()} 起
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-5 border-t border-primary-100 bg-primary-50/50">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl font-medium text-neutral-text bg-white border border-primary-200 hover:bg-primary-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-red-500 hover:bg-red-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                确认删除
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

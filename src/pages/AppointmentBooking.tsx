@@ -463,7 +463,7 @@ export default function AppointmentBooking() {
                 套餐对比选择
               </h2>
               <p className="text-neutral-muted mb-6">
-                横向对比各套餐服务内容，选择最适合您的套餐
+                通过表格形式横向对比各套餐服务内容，选择最适合您的套餐
               </p>
               {formErrors.packageId && (
                 <p className="mb-4 text-sm text-red-500 flex items-center gap-1">
@@ -477,130 +477,180 @@ export default function AppointmentBooking() {
                   <p className="text-neutral-muted">暂无可用套餐，请联系管理员</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <div className="flex gap-4 min-w-max pb-2">
-                    {funeralPackages.map((pkg) => {
-                      const isSelected = formData.packageId === pkg.id;
-                      const totalPrice = calculatePackagePrice(pkg);
-                      const includedServices = pkg.serviceItems.filter((s) => s.included);
-
-                      return (
-                        <div
-                          key={pkg.id}
-                          onClick={() => updateForm('packageId', pkg.id)}
-                          className={`relative flex-shrink-0 w-72 cursor-pointer rounded-2xl border-2 transition-all duration-200 overflow-hidden ${
-                            isSelected
-                              ? 'border-amber-500 shadow-xl scale-[1.02] ring-4 ring-amber-100'
-                              : 'border-primary-100 bg-white hover:border-primary-300 hover:shadow-lg'
-                          }`}
-                        >
-                          {pkg.isRecommended && (
-                            <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
-                              <Sparkles className="w-3 h-3" />
-                              推荐
-                            </div>
-                          )}
-
-                          <div className="relative h-36 bg-primary-100">
-                            {pkg.coverImage ? (
-                              <img
-                                src={pkg.coverImage}
-                                alt={pkg.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Image className="w-10 h-10 text-primary-300" />
-                              </div>
-                            )}
-                            {isSelected && (
-                              <div className="absolute top-3 left-3 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
-                                <CheckCircle className="w-5 h-5 text-white" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="p-5">
-                            <h3 className="font-serif text-xl font-bold text-neutral-text mb-2">
-                              {pkg.name}
-                            </h3>
-                            <p className="text-sm text-neutral-muted mb-4 leading-relaxed line-clamp-2 h-10">
-                              {pkg.description}
-                            </p>
-
-                            <div className="flex items-baseline gap-1 mb-4">
-                              <span className="text-3xl font-bold text-amber-600">
-                                ¥{totalPrice.toLocaleString()}
-                              </span>
-                              <span className="text-xs text-neutral-muted">起</span>
-                            </div>
-
-                            <div className="border-t border-primary-100 pt-4">
-                              <div className="flex items-center justify-between mb-3">
-                                <span className="text-sm font-medium text-neutral-text">
-                                  包含服务
-                                </span>
-                                <span className="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
-                                  {includedServices.length} 项
-                                </span>
-                              </div>
-                              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                                {serviceItems.map((item) => {
-                                  const psi = pkg.serviceItems.find(
-                                    (s) => s.serviceItemId === item.id
-                                  );
-                                  const included = psi?.included ?? false;
-                                  return (
-                                    <div
-                                      key={item.id}
-                                      className="flex items-center justify-between text-sm"
-                                    >
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        {included ? (
-                                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                        ) : (
-                                          <XCircle className="w-4 h-4 text-neutral-200 flex-shrink-0" />
-                                        )}
-                                        <span
-                                          className={`truncate ${
-                                            included
-                                              ? 'text-neutral-text'
-                                              : 'text-neutral-muted line-through'
-                                          }`}
-                                        >
-                                          {item.name}
-                                        </span>
-                                      </div>
-                                      {included && (
-                                        <span className="text-xs text-neutral-muted flex-shrink-0 ml-2">
-                                          ¥{psi?.customPrice ?? item.price}
-                                        </span>
-                                      )}
+                <div className="overflow-x-auto rounded-2xl border border-primary-200 shadow-card">
+                  <table className="w-full min-w-[768px]">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-primary-50 to-amber-50">
+                        <th className="text-left p-5 font-semibold text-primary-900 border-b border-primary-200 w-44">
+                          服务项目
+                        </th>
+                        {funeralPackages.map((pkg) => {
+                          const isSelected = formData.packageId === pkg.id;
+                          return (
+                            <th
+                              key={pkg.id}
+                              className={`p-5 text-center border-b border-primary-200 transition-colors ${
+                                isSelected ? 'bg-amber-100' : ''
+                              }`}
+                              style={{ minWidth: '180px' }}
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                {pkg.isRecommended && (
+                                  <div className="bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" />
+                                    推荐
+                                  </div>
+                                )}
+                                <div
+                                  className={`w-full h-20 rounded-xl overflow-hidden border-2 transition-all ${
+                                    isSelected
+                                      ? 'border-amber-500 shadow-md'
+                                      : 'border-primary-100'
+                                  }`}
+                                >
+                                  {pkg.coverImage ? (
+                                    <img
+                                      src={pkg.coverImage}
+                                      alt={pkg.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-primary-50 flex items-center justify-center">
+                                      <Image className="w-8 h-8 text-primary-300" />
                                     </div>
-                                  );
-                                })}
+                                  )}
+                                </div>
+                                <div className="font-serif text-lg font-bold text-neutral-text">
+                                  {pkg.name}
+                                </div>
+                                <div className="text-xs text-neutral-muted line-clamp-2 h-8 leading-snug">
+                                  {pkg.description}
+                                </div>
+                                <div className="text-2xl font-bold text-amber-600">
+                                  ¥{calculatePackagePrice(pkg).toLocaleString()}
+                                </div>
                               </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateForm('packageId', pkg.id);
-                              }}
-                              className={`w-full mt-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                                isSelected
-                                  ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md'
-                                  : 'bg-primary-50 text-neutral-text border border-primary-200 hover:bg-primary-100'
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="bg-white">
+                        <td className="p-4 font-medium text-neutral-text border-b border-primary-100">
+                          包含服务数量
+                        </td>
+                        {funeralPackages.map((pkg) => {
+                          const count = pkg.serviceItems.filter((s) => s.included).length;
+                          const isSelected = formData.packageId === pkg.id;
+                          return (
+                            <td
+                              key={pkg.id}
+                              className={`p-4 text-center border-b border-primary-100 transition-colors ${
+                                isSelected ? 'bg-amber-50' : ''
                               }`}
                             >
-                              {isSelected ? '✓ 已选择' : '选择此套餐'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-700">
+                                {count} 项
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {serviceItems.map((item, idx) => (
+                        <tr
+                          key={item.id}
+                          className={idx % 2 === 0 ? 'bg-white' : 'bg-primary-50/40'}
+                        >
+                          <td className="p-4 border-b border-primary-100">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-neutral-text">
+                                {item.name}
+                              </span>
+                              <span className="text-xs text-neutral-muted">
+                                ¥{item.price}
+                              </span>
+                            </div>
+                          </td>
+                          {funeralPackages.map((pkg) => {
+                            const psi = pkg.serviceItems.find(
+                              (s) => s.serviceItemId === item.id
+                            );
+                            const included = psi?.included ?? false;
+                            const customPrice = psi?.customPrice;
+                            const isSelected = formData.packageId === pkg.id;
+                            return (
+                              <td
+                                key={pkg.id}
+                                className={`p-4 text-center border-b border-primary-100 transition-colors ${
+                                  isSelected ? 'bg-amber-50' : ''
+                                }`}
+                              >
+                                {included ? (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
+                                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    {customPrice !== undefined && (
+                                      <span className="text-xs text-amber-600 font-medium">
+                                        ¥{customPrice}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center mx-auto">
+                                    <XCircle className="w-5 h-5 text-neutral-300" />
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+
+                      <tr className="bg-gradient-to-r from-primary-50 to-amber-50">
+                        <td className="p-5 font-semibold text-primary-900">
+                          操作
+                        </td>
+                        {funeralPackages.map((pkg) => {
+                          const isSelected = formData.packageId === pkg.id;
+                          return (
+                            <td
+                              key={pkg.id}
+                              className={`p-5 text-center transition-colors ${
+                                isSelected ? 'bg-amber-100' : ''
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => updateForm('packageId', pkg.id)}
+                                className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 ${
+                                  isSelected
+                                    ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-lg scale-[1.02]'
+                                    : 'bg-white text-neutral-text border-2 border-primary-200 hover:border-amber-400 hover:shadow-md'
+                                }`}
+                              >
+                                {isSelected ? (
+                                  <span className="flex items-center justify-center gap-1.5">
+                                    <CheckCircle className="w-5 h-5" />
+                                    已选择
+                                  </span>
+                                ) : (
+                                  '选择此套餐'
+                                )}
+                              </button>
+                              {isSelected && (
+                                <div className="mt-2 text-xs text-amber-700 font-medium">
+                                  ✓ 当前选中
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
