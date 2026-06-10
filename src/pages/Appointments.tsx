@@ -1,16 +1,58 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarCheck, ExternalLink, PawPrint, User, Phone, Clock, ChevronRight, Flame, Heart, Sparkles, Mail } from 'lucide-react';
+import {
+  CalendarCheck,
+  ExternalLink,
+  PawPrint,
+  User,
+  Phone,
+  Clock,
+  ChevronRight,
+  ChevronDown,
+  Flame,
+  Heart,
+  Sparkles,
+  Mail,
+  Package,
+  CheckCircle2,
+  XCircle,
+  X,
+  Image,
+  DollarSign
+} from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
-import type { Ceremony } from '@/shared/types';
+import type { Ceremony, FuneralPackage } from '@/shared/types';
 
 export default function Appointments() {
-  const { ceremonies, pets, owners, cremations } = useAppStore();
+  const {
+    ceremonies,
+    pets,
+    owners,
+    cremations,
+    funeralPackages,
+    serviceItems,
+    calculatePackagePrice
+  } = useAppStore();
+
+  const [expandedCeremonyId, setExpandedCeremonyId] = useState<string | null>(null);
+  const [detailPackage, setDetailPackage] = useState<FuneralPackage | null>(null);
 
   const getPetById = (id: string) => pets.find(p => p.id === id);
   const getOwnerById = (id: string) => owners.find(o => o.id === id);
+  const getPackageById = (id: string) => funeralPackages.find(p => p.id === id);
 
-  const getServiceType = (ceremony: Ceremony): { type: 'ceremony' | 'cremation' | 'full'; label: string; icon: any; color: string } => {
+  const getServiceType = (ceremony: Ceremony): { label: string; icon: React.ComponentType<{ className?: string }>; color: string } => {
+    if (ceremony.packageId) {
+      const pkg = getPackageById(ceremony.packageId);
+      if (pkg) {
+        return {
+          label: pkg.name,
+          icon: Package,
+          color: 'bg-gradient-to-r from-amber-100 to-rose-100 text-amber-800 border border-amber-200'
+        };
+      }
+    }
     const petCremations = cremations.filter(c => c.petId === ceremony.petId);
     const hasCremationSameTime = petCremations.some(c => {
       const cTime = new Date(c.cremationTime).getTime();
@@ -18,16 +60,16 @@ export default function Appointments() {
       return Math.abs(cTime - cerTime) < 60 * 60 * 1000;
     });
 
-    if (ceremony.location.includes('全套') || (ceremony.location !== '待分配' && ceremony.location.includes('全套'))) {
-      return { type: 'full', label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
+    if (ceremony.location.includes('全套')) {
+      return { label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
     }
     if (hasCremationSameTime && ceremony.location.includes('火化服务')) {
-      return { type: 'cremation', label: '火化服务', icon: Flame, color: 'bg-orange-100 text-orange-700' };
+      return { label: '火化服务', icon: Flame, color: 'bg-orange-100 text-orange-700' };
     }
     if (hasCremationSameTime) {
-      return { type: 'full', label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
+      return { label: '全套服务', icon: Sparkles, color: 'bg-purple-100 text-purple-700' };
     }
-    return { type: 'ceremony', label: '告别仪式', icon: Heart, color: 'bg-rose-100 text-rose-700' };
+    return { label: '告别仪式', icon: Heart, color: 'bg-rose-100 text-rose-700' };
   };
 
   const sortedCeremonies = [...ceremonies].sort(
@@ -59,6 +101,21 @@ export default function Appointments() {
       minute: '2-digit'
     });
   };
+
+  const toggleExpand = (id: string) => {
+    setExpandedCeremonyId(prev => prev === id ? null : id);
+  };
+
+  useEffect(() => {
+    if (detailPackage) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [detailPackage]);
 
   return (
     <div className="space-y-6">
@@ -136,11 +193,11 @@ export default function Appointments() {
           <table className="w-full">
             <thead className="bg-primary-50 border-b border-primary-100">
               <tr>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800 w-10"></th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">宠物信息</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">主人信息</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">服务类型</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">套餐/服务</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">预约时间</th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">地点/备注</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">状态</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">操作</th>
               </tr>
@@ -162,72 +219,181 @@ export default function Appointments() {
                   const owner = pet ? getOwnerById(pet.ownerId) : undefined;
                   const serviceInfo = getServiceType(ceremony);
                   const ServiceIcon = serviceInfo.icon;
+                  const pkg = ceremony.packageId ? getPackageById(ceremony.packageId) : null;
+                  const isExpanded = expandedCeremonyId === ceremony.id;
+
                   return (
-                    <tr key={ceremony.id} className="hover:bg-primary-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {pet?.photoUrl ? (
-                            <img
-                              src={pet.photoUrl}
-                              alt={pet.name}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-primary-100"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                              <PawPrint className="w-5 h-5 text-primary-600" />
-                            </div>
+                    <>
+                      <tr
+                        key={ceremony.id}
+                        className="hover:bg-primary-50/50 transition-colors"
+                      >
+                        <td className="px-4 py-4">
+                          {pkg && (
+                            <button
+                              onClick={() => toggleExpand(ceremony.id)}
+                              className="p-1.5 rounded-lg text-neutral-muted hover:text-neutral-text hover:bg-primary-100 transition-colors"
+                              title="展开/收起套餐详情"
+                            >
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform ${
+                                  isExpanded ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </button>
                           )}
-                          <div>
-                            <p className="font-medium text-neutral-text">{pet?.name || '未知宠物'}</p>
-                            <p className="text-sm text-neutral-muted">{pet?.breed || '-'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {pet?.photoUrl ? (
+                              <img
+                                src={pet.photoUrl}
+                                alt={pet.name}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-primary-100"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                <PawPrint className="w-5 h-5 text-primary-600" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-neutral-text">{pet?.name || '未知宠物'}</p>
+                              <p className="text-sm text-neutral-muted">{pet?.breed || '-'}</p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
-                            <User className="w-3.5 h-3.5 text-primary-500" />
-                            <span className="text-neutral-text">{owner?.name || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="w-3.5 h-3.5 text-primary-500" />
-                            <span className="text-neutral-muted">{owner?.phone || '-'}</span>
-                          </div>
-                          {owner?.email && (
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
                             <div className="flex items-center gap-2 text-sm">
-                              <Mail className="w-3.5 h-3.5 text-primary-500" />
-                              <span className="text-neutral-muted">{owner.email}</span>
+                              <User className="w-3.5 h-3.5 text-primary-500" />
+                              <span className="text-neutral-text">{owner?.name || '-'}</span>
                             </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="w-3.5 h-3.5 text-primary-500" />
+                              <span className="text-neutral-muted">{owner?.phone || '-'}</span>
+                            </div>
+                            {owner?.email && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Mail className="w-3.5 h-3.5 text-primary-500" />
+                                <span className="text-neutral-muted">{owner.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${serviceInfo.color}`}
+                            >
+                              <ServiceIcon className="w-3.5 h-3.5" />
+                              {serviceInfo.label}
+                            </span>
+                            {pkg && (
+                              <button
+                                onClick={() => setDetailPackage(pkg)}
+                                className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium transition-colors"
+                              >
+                                <Package className="w-3 h-3" />
+                                查看套餐详情
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-neutral-text">{formatDateTime(ceremony.ceremonyTime)}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(ceremony.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {pet && (
+                            <Link
+                              to={`/pets/${pet.id}`}
+                              className="inline-flex items-center text-sm text-primary-700 hover:text-primary-900 font-medium"
+                            >
+                              查看详情
+                              <ChevronRight className="w-4 h-4" />
+                            </Link>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${serviceInfo.color}`}>
-                          <ServiceIcon className="w-3.5 h-3.5" />
-                          {serviceInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-neutral-text">{formatDateTime(ceremony.ceremonyTime)}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-neutral-text">{ceremony.location}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(ceremony.status)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {pet && (
-                          <Link
-                            to={`/pets/${pet.id}`}
-                            className="inline-flex items-center text-sm text-primary-700 hover:text-primary-900 font-medium"
-                          >
-                            查看详情
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                      {isExpanded && pkg && (
+                        <tr key={`${ceremony.id}-expanded`} className="bg-gradient-to-r from-amber-50/60 to-rose-50/60">
+                          <td colSpan={7} className="px-6 py-5">
+                            <div className="bg-white rounded-xl border border-amber-200 p-5 shadow-sm">
+                              <div className="flex gap-5">
+                                <div className="flex-shrink-0 w-32 h-24 rounded-xl overflow-hidden border-2 border-primary-100 bg-primary-50">
+                                  {pkg.coverImage ? (
+                                    <img
+                                      src={pkg.coverImage}
+                                      alt={pkg.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Image className="w-10 h-10 text-primary-300" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
+                                      {pkg.name}
+                                      {pkg.isRecommended && (
+                                        <span className="bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                          <Sparkles className="w-3 h-3" />
+                                          推荐
+                                        </span>
+                                      )}
+                                    </h4>
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="w-5 h-5 text-amber-500" />
+                                      <span className="text-2xl font-bold text-amber-600">
+                                        ¥{calculatePackagePrice(pkg).toLocaleString()}
+                                      </span>
+                                      <span className="text-xs text-neutral-muted">起</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-neutral-muted mb-4">{pkg.description}</p>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                                    {pkg.serviceItems.map((psi) => {
+                                      const item = serviceItems.find((s) => s.id === psi.serviceItemId);
+                                      const included = psi.included;
+                                      return (
+                                        <div
+                                          key={psi.serviceItemId}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                                            included
+                                              ? 'bg-green-50 border border-green-100'
+                                              : 'bg-neutral-50 border border-neutral-100 opacity-60'
+                                          }`}
+                                        >
+                                          {included ? (
+                                            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                          ) : (
+                                            <XCircle className="w-4 h-4 text-neutral-300 flex-shrink-0" />
+                                          )}
+                                          <div className="min-w-0">
+                                            <p className={`truncate ${included ? 'text-neutral-text font-medium' : 'text-neutral-muted line-through'}`}>
+                                              {item?.name || '未知服务'}
+                                            </p>
+                                            {included && (
+                                              <p className="text-xs text-amber-600">
+                                                ¥{psi.customPrice ?? item?.price ?? 0}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })
               )}
@@ -235,6 +401,132 @@ export default function Appointments() {
           </table>
         </div>
       </div>
+
+      {detailPackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setDetailPackage(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] overflow-hidden animate-scale-in flex flex-col">
+            <div className="relative h-48 bg-primary-100 flex-shrink-0">
+              {detailPackage.coverImage ? (
+                <img
+                  src={detailPackage.coverImage}
+                  alt={detailPackage.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Image className="w-16 h-16 text-primary-300" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {detailPackage.isRecommended && (
+                      <span className="bg-gradient-to-r from-amber-500 to-rose-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        推荐套餐
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-white">
+                    {detailPackage.name}
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-white/80 mb-1">套餐价格</p>
+                  <p className="text-3xl font-bold text-white">
+                    ¥{calculatePackagePrice(detailPackage).toLocaleString()}
+                    <span className="text-sm font-normal text-white/80 ml-1">起</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailPackage(null)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <p className="text-neutral-muted mb-6 leading-relaxed">
+                {detailPackage.description}
+              </p>
+
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-primary-900 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary-600" />
+                    服务项明细
+                  </h4>
+                  <span className="text-xs bg-primary-100 text-primary-700 px-3 py-1 rounded-full font-medium">
+                    共包含 {detailPackage.serviceItems.filter((s) => s.included).length} 项服务
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {detailPackage.serviceItems.map((psi) => {
+                    const item = serviceItems.find((s) => s.id === psi.serviceItemId);
+                    const included = psi.included;
+                    return (
+                      <div
+                        key={psi.serviceItemId}
+                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                          included
+                            ? 'border-green-200 bg-green-50'
+                            : 'border-neutral-100 bg-neutral-50 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {included ? (
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                              <XCircle className="w-5 h-5 text-neutral-300" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-medium truncate ${included ? 'text-neutral-text' : 'text-neutral-muted line-through'}`}>
+                              {item?.name || '未知服务'}
+                            </p>
+                            {item?.description && included && (
+                              <p className="text-xs text-neutral-muted truncate mt-0.5">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {included && (
+                          <div className="ml-3 flex-shrink-0">
+                            <span className="text-amber-600 font-semibold">
+                              ¥{psi.customPrice ?? item?.price ?? 0}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 p-6 border-t border-primary-100 bg-primary-50/50 flex items-center justify-end">
+              <button
+                onClick={() => setDetailPackage(null)}
+                className="btn-primary"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -90,7 +90,8 @@ export const mockCeremonies: Ceremony[] = [
     location: '追思堂A厅',
     participants: '张明华及家人共8人',
     status: 'completed',
-    notes: '仪式温馨庄重，家属对服务表示满意。'
+    notes: '仪式温馨庄重，家属对服务表示满意。',
+    packageId: 'package-002'
   },
   {
     id: 'ceremony-002',
@@ -99,7 +100,8 @@ export const mockCeremonies: Ceremony[] = [
     location: '追思堂B厅',
     participants: '张明华及朋友共5人',
     status: 'completed',
-    notes: '老狗旺财的告别仪式，主人数度落泪。'
+    notes: '老狗旺财的告别仪式，主人数度落泪。',
+    packageId: 'package-001'
   },
   {
     id: 'ceremony-003',
@@ -108,7 +110,8 @@ export const mockCeremonies: Ceremony[] = [
     location: '追思堂C厅',
     participants: '李小红及家人共4人',
     status: 'completed',
-    notes: '咪咪的告别仪式简单而温馨。'
+    notes: '咪咪的告别仪式简单而温馨。',
+    packageId: 'package-003'
   }
 ];
 

@@ -11,22 +11,36 @@ import {
   Image,
   Search,
   AlertTriangle,
-  X
+  X,
+  ChevronDown,
+  ChevronUp,
+  CalendarCheck,
+  User,
+  PawPrint,
+  ExternalLink
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageHeader from '@/components/PageHeader';
-import type { FuneralPackage } from '@/shared/types';
+import type { FuneralPackage, Ceremony } from '@/shared/types';
 
 export default function PackageList() {
   const {
     funeralPackages,
     serviceItems,
     deleteFuneralPackage,
-    calculatePackagePrice
+    calculatePackagePrice,
+    ceremonies,
+    pets,
+    owners
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<FuneralPackage | null>(null);
+  const [expandedPackages, setExpandedPackages] = useState<Record<string, boolean>>({});
+  const [cannotDelete, setCannotDelete] = useState<{
+    pkg: FuneralPackage;
+    referencingCeremonies: (Ceremony & { petName?: string; ownerName?: string })[];
+  } | null>(null);
 
   const filteredPackages = funeralPackages.filter((pkg) =>
     pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -41,6 +55,36 @@ export default function PackageList() {
     return pkg.serviceItems.filter((s) => s.included);
   };
 
+  const togglePackageExpand = (packageId: string) => {
+    setExpandedPackages((prev) => ({
+      ...prev,
+      [packageId]: !prev[packageId]
+    }));
+  };
+
+  const getReferencingCeremonies = (packageId: string) => {
+    return ceremonies
+      .filter((c) => c.packageId === packageId)
+      .map((c) => {
+        const pet = pets.find((p) => p.id === c.petId);
+        const owner = pet ? owners.find((o) => o.id === pet.ownerId) : undefined;
+        return {
+          ...c,
+          petName: pet?.name,
+          ownerName: owner?.name
+        };
+      });
+  };
+
+  const handleDeleteClick = (pkg: FuneralPackage) => {
+    const refs = getReferencingCeremonies(pkg.id);
+    if (refs.length > 0) {
+      setCannotDelete({ pkg, referencingCeremonies: refs });
+    } else {
+      setDeleteTarget(pkg);
+    }
+  };
+
   const confirmDelete = () => {
     if (deleteTarget) {
       deleteFuneralPackage(deleteTarget.id);
@@ -49,7 +93,8 @@ export default function PackageList() {
   };
 
   useEffect(() => {
-    if (deleteTarget) {
+    const anyModalOpen = deleteTarget !== null || cannotDelete !== null;
+    if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -57,7 +102,17 @@ export default function PackageList() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [deleteTarget]);
+  }, [deleteTarget, cannotDelete]);
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <div className="relative">
@@ -103,6 +158,13 @@ export default function PackageList() {
           {filteredPackages.map((pkg) => {
             const includedCount = getIncludedServices(pkg).length;
             const totalPrice = calculatePackagePrice(pkg);
+            const isExpanded = expandedPackages[pkg.id] ?? false;
+            const serviceCount = pkg.serviceItems.length;
+            const shouldCollapse = serviceCount > 5;
+            const displayServices = shouldCollapse && !isExpanded
+              ? pkg.serviceItems.slice(0, 5)
+              : pkg.serviceItems;
+            const hiddenCount = serviceCount - 5;
 
             return (
               <div
@@ -152,11 +214,11 @@ export default function PackageList() {
                       包含服务
                     </span>
                     <span className="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
-                      {includedCount} 项
+                      {includedCount} / {serviceCount} 项
                     </span>
                   </div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {pkg.serviceItems.slice(0, 5).map((psi) => {
+                  <div className="space-y-2">
+                    {displayServices.map((psi) => {
                       const serviceItem = serviceItems.find(
                         (s) => s.id === psi.serviceItemId
                       );
@@ -165,36 +227,50 @@ export default function PackageList() {
                           key={psi.serviceItemId}
                           className="flex items-center justify-between text-sm"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             {psi.included ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
                             ) : (
-                              <XCircle className="w-4 h-4 text-neutral-300" />
+                              <XCircle className="w-4 h-4 text-neutral-300 flex-shrink-0" />
                             )}
                             <span
-                              className={
+                              className={`truncate ${
                                 psi.included
                                   ? 'text-neutral-text'
                                   : 'text-neutral-muted line-through'
-                              }
+                              }`}
                             >
                               {getServiceItemName(psi.serviceItemId)}
                             </span>
                           </div>
                           {psi.included && serviceItem && (
-                            <span className="text-xs text-neutral-muted">
+                            <span className="text-xs text-neutral-muted flex-shrink-0 ml-2">
                               ¥{psi.customPrice ?? serviceItem.price}
                             </span>
                           )}
                         </div>
                       );
                     })}
-                    {pkg.serviceItems.length > 5 && (
-                      <p className="text-xs text-neutral-muted text-center">
-                        还有 {pkg.serviceItems.length - 5} 项服务...
-                      </p>
-                    )}
                   </div>
+
+                  {shouldCollapse && (
+                    <button
+                      onClick={() => togglePackageExpand(pkg.id)}
+                      className="mt-3 w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                    >
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                          收起服务列表
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                          展开全部 {serviceCount} 项服务（隐藏 {hiddenCount} 项）
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 -mx-2">
@@ -206,7 +282,7 @@ export default function PackageList() {
                     编辑
                   </Link>
                   <button
-                    onClick={() => setDeleteTarget(pkg)}
+                    onClick={() => handleDeleteClick(pkg)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -290,6 +366,125 @@ export default function PackageList() {
               >
                 <Trash2 className="w-4 h-4" />
                 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cannotDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setCannotDelete(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-scale-in">
+            <div className="flex items-center justify-between p-5 border-b border-primary-100 bg-amber-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-semibold text-neutral-text">
+                    无法删除套餐
+                  </h3>
+                  <p className="text-xs text-amber-700">
+                    该套餐存在预约引用，无法直接删除
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCannotDelete(null)}
+                className="p-2 text-neutral-muted hover:text-neutral-text hover:bg-white rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-200 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-primary-100 overflow-hidden flex-shrink-0">
+                    {cannotDelete.pkg.coverImage ? (
+                      <img
+                        src={cannotDelete.pkg.coverImage}
+                        alt={cannotDelete.pkg.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-primary-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-neutral-text">
+                      {cannotDelete.pkg.name}
+                    </p>
+                    <p className="text-sm text-neutral-muted line-clamp-2">
+                      {cannotDelete.pkg.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-neutral-muted mb-3">
+                以下 <span className="font-semibold text-amber-700">{cannotDelete.referencingCeremonies.length}</span> 个预约使用了此套餐：
+              </p>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {cannotDelete.referencingCeremonies.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-primary-50 border border-primary-100"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-full bg-white border border-primary-100 flex items-center justify-center flex-shrink-0">
+                        <PawPrint className="w-4 h-4 text-primary-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-neutral-text truncate">
+                            {c.petName || '未知宠物'}
+                          </span>
+                          {c.ownerName && (
+                            <>
+                              <span className="text-neutral-muted">·</span>
+                              <div className="flex items-center gap-1 text-xs text-neutral-muted min-w-0">
+                                <User className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{c.ownerName}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-neutral-muted mt-0.5">
+                          <CalendarCheck className="w-3 h-3 flex-shrink-0" />
+                          {formatDateTime(c.ceremonyTime)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <ExternalLink className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  请先前往
+                  <a href="/appointments" className="font-semibold underline mx-0.5 hover:text-blue-900">
+                    主人预约
+                  </a>
+                  页面处理上述引用的预约后，再尝试删除此套餐。
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end p-5 border-t border-primary-100 bg-primary-50/50">
+              <button
+                onClick={() => setCannotDelete(null)}
+                className="btn-primary"
+              >
+                我知道了
               </button>
             </div>
           </div>

@@ -26,6 +26,7 @@ export interface Ceremony {
   participants: string;
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   notes?: string;
+  packageId?: string;
 }
 
 export interface Cremation {

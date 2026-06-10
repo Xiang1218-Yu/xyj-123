@@ -14,7 +14,8 @@ import {
   User,
   AlertCircle,
   Link as LinkIcon,
-  Image
+  Image,
+  Package
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 
@@ -180,7 +181,8 @@ export default function AppointmentBooking() {
       location: `${packageName}（待分配场地）`,
       participants: '待确认',
       status: 'pending',
-      notes: formData.notes
+      notes: formData.notes,
+      packageId: formData.packageId!
     });
     bookingId = newCeremony.id;
 
@@ -722,35 +724,138 @@ export default function AppointmentBooking() {
                   />
                 </div>
 
-                <div className="bg-amber-50 rounded-2xl p-6">
-                  <h3 className="font-semibold text-neutral-text mb-4">预约信息确认</h3>
-                  <div className="grid md:grid-cols-2 gap-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">宠物：</span>
-                      <span className="text-neutral-text font-medium">{formData.petName || '-'}</span>
+                <div className="space-y-6">
+                  {formData.packageId && (() => {
+                    const pkg = getFuneralPackageById(formData.packageId!);
+                    if (!pkg) return null;
+                    const pkgTotalPrice = calculatePackagePrice(pkg);
+                    return (
+                      <div className="border-2 border-amber-200 rounded-2xl overflow-hidden">
+                        <div className="bg-gradient-to-r from-amber-500 to-rose-500 px-5 py-3 flex items-center justify-between">
+                          <h3 className="text-white font-semibold flex items-center gap-2">
+                            <Package className="w-5 h-5" />
+                            套餐信息确认
+                          </h3>
+                          {pkg.isRecommended && (
+                            <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              推荐套餐
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-5 bg-white">
+                          <div className="flex items-start gap-4 mb-5">
+                            <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-primary-100 flex-shrink-0 bg-primary-50">
+                              {pkg.coverImage ? (
+                                <img
+                                  src={pkg.coverImage}
+                                  alt={pkg.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Image className="w-8 h-8 text-primary-300" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-serif text-xl font-bold text-neutral-text mb-1">
+                                {pkg.name}
+                              </h4>
+                              <p className="text-sm text-neutral-muted mb-2 line-clamp-2">
+                                {pkg.description}
+                              </p>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold text-amber-600">
+                                  ¥{pkgTotalPrice.toLocaleString()}
+                                </span>
+                                <span className="text-xs text-neutral-muted">套餐总价（起）</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="border-t border-primary-100 pt-4">
+                            <p className="text-xs text-neutral-muted mb-3">
+                              套餐包含以下服务（共 {pkg.serviceItems.filter(s => s.included).length} 项）：
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {pkg.serviceItems.map((psi) => {
+                                const item = serviceItems.find((s) => s.id === psi.serviceItemId);
+                                const included = psi.included;
+                                return (
+                                  <div
+                                    key={psi.serviceItemId}
+                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm ${
+                                      included
+                                        ? 'bg-green-50 border border-green-100'
+                                        : 'bg-neutral-50 border border-neutral-100 opacity-50'
+                                    }`}
+                                  >
+                                    {included ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                    ) : (
+                                      <XCircle className="w-3.5 h-3.5 text-neutral-300 flex-shrink-0" />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <p className={`truncate text-xs ${included ? 'text-neutral-text font-medium' : 'text-neutral-muted line-through'}`}>
+                                        {item?.name || '未知'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="bg-amber-50 rounded-2xl p-6">
+                    <h3 className="font-semibold text-neutral-text mb-4">预约信息确认</h3>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">宠物：</span>
+                        <span className="text-neutral-text font-medium">{formData.petName || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">品种：</span>
+                        <span className="text-neutral-text font-medium">{formData.petBreed || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">年龄：</span>
+                        <span className="text-neutral-text font-medium">{formData.petAge || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">主人：</span>
+                        <span className="text-neutral-text font-medium">{formData.ownerName || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">联系电话：</span>
+                        <span className="text-neutral-text font-medium">{formData.ownerPhone || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">邮箱：</span>
+                        <span className="text-neutral-text font-medium text-right truncate ml-2">{formData.ownerEmail || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">预约日期：</span>
+                        <span className="text-neutral-text font-medium">{formData.expectedDate || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-muted">预约时段：</span>
+                        <span className="text-neutral-text font-medium">{formData.expectedTimeSlot || '-'}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">品种：</span>
-                      <span className="text-neutral-text font-medium">{formData.petBreed || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">主人：</span>
-                      <span className="text-neutral-text font-medium">{formData.ownerName || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">套餐：</span>
-                      <span className="text-neutral-text font-medium">
-                        {getFuneralPackageById(formData.packageId!)?.name || '-'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">日期：</span>
-                      <span className="text-neutral-text font-medium">{formData.expectedDate || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-muted">时间：</span>
-                      <span className="text-neutral-text font-medium">{formData.expectedTimeSlot || '-'}</span>
-                    </div>
+                    {formData.notes && (
+                      <div className="mt-4 pt-4 border-t border-amber-200">
+                        <div className="text-sm">
+                          <span className="text-neutral-muted">备注：</span>
+                          <p className="text-neutral-text mt-1 whitespace-pre-wrap break-words">
+                            {formData.notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
