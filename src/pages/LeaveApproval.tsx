@@ -10,13 +10,30 @@ import {
   CalendarDays,
   FileText,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  Trash2,
+  RefreshCw,
+  Sparkles,
+  ArrowRightLeft,
+  Sun,
+  Sunset,
+  Moon,
+  Coffee
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
-import type { LeaveRequest } from '@/shared/types';
+import type { LeaveRequest, ShiftSchedule, ShiftType } from '@/shared/types';
 
 type TabFilter = 'all' | 'pending' | 'approved' | 'rejected';
+type ConflictAction = 'replace' | 'smart' | 'clear' | null;
+
+const SHIFT_CONFIG: Record<ShiftType, { label: string; color: string; icon: typeof Sun }> = {
+  morning: { label: '早班', color: 'text-blue-700 bg-blue-100', icon: Sun },
+  afternoon: { label: '晚班', color: 'text-orange-700 bg-orange-100', icon: Sunset },
+  night: { label: '夜班', color: 'text-purple-700 bg-purple-100', icon: Moon },
+  rest: { label: '休息', color: 'text-gray-600 bg-gray-100', icon: Coffee },
+};
 
 const leaveTypeMap: Record<LeaveRequest['type'], string> = {
   annual: '年假',
@@ -46,12 +63,34 @@ interface NewLeaveForm {
   reason: string;
 }
 
+interface ConflictResolutionState {
+  request: LeaveRequest;
+  conflictingShifts: ShiftSchedule[];
+  action: ConflictAction;
+  replacementMap: Record<string, string>;
+  smartAssignments: Array<{ shiftId: string; employeeId: string; employeeName: string }>;
+  processing: boolean;
+  success: boolean;
+  error: string | null;
+}
+
 const initialForm: NewLeaveForm = {
   employeeId: '',
   type: 'annual',
   startDate: '',
   endDate: '',
   reason: ''
+};
+
+const initialResolution: ConflictResolutionState = {
+  request: null as unknown as LeaveRequest,
+  conflictingShifts: [],
+  action: null,
+  replacementMap: {},
+  smartAssignments: [],
+  processing: false,
+  success: false,
+  error: null
 };
 
 function getDateRange(start: string, end: string): string[] {
@@ -69,6 +108,11 @@ function getDateRange(start: string, end: string): string[] {
   return dates;
 }
 
+function formatDisplayDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export default function LeaveApproval() {
   const {
     employees,
@@ -76,17 +120,27 @@ export default function LeaveApproval() {
     shiftSchedules,
     addLeaveRequest,
     approveLeaveRequest,
-    rejectLeaveRequest
+    rejectLeaveRequest,
+    updateShiftSchedule,
+    deleteShiftSchedule,
+    hasLeaveConflict
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<NewLeaveForm>(initialForm);
   const [error, setError] = useState<string | null>(null);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [resolution, setResolution] = useState<ConflictResolutionState>(initialResolution);
 
   const pendingCount = leaveRequests.filter((r) => r.status === 'pending').length;
   const approvedCount = leaveRequests.filter((r) => r.status === 'approved').length;
   const rejectedCount = leaveRequests.filter((r) => r.status === 'rejected').length;
+
+  const activeEmployees = useMemo(
+    () => employees.filter((e) => e.status === 'active'),
+    [employees]
+  );
 
   const filteredRequests = leaveRequests
     .filter((r) => activeTab === 'all' || r.status === activeTab)
@@ -114,6 +168,52 @@ export default function LeaveApproval() {
     };
   }, [form.employeeId, form.startDate, form.endDate, shiftSchedules]);
 
+  const getConflictingShifts = (request: LeaveRequest): ShiftSchedule[] => {
+    const dates = getDateRange(request.startDate, request.endDate);
+    return shiftSchedules.filter((s) => {
+      if (s.employeeId !== request.employeeId) return false;
+      if (s.shiftType === 'rest') return false;
+      return dates.includes(s.date);
+    });
+  };
+
+  const getAvailableReplacements = (shift: ShiftSchedule): Array<{ id: string; name: string }> => {
+    return activeEmployees
+      .filter((emp) => {
+        if (emp.id === shift.employeeId) return false;
+        const hasConflict = shiftSchedules.some(
+          (s) => s.employeeId === emp.id && s.date === shift.date && s.shiftType !== 'rest'
+        );
+        const hasLeave = hasLeaveConflict(emp.id, shift.date);
+        return !hasConflict && !hasLeave;
+      })
+      .map((emp) => ({ id: emp.id, name: emp.name }));
+  };
+
+  const getSmartRecommendation = (shifts: ShiftSchedule[]): Map<string, string[]> => {
+    const recommendations = new Map<string, string[]>();
+    const employeeWorkload = new Map<string, number>();
+
+    for (const emp of activeEmployees) {
+      const count = shiftSchedules.filter(
+        (s) => s.employeeId === emp.id && s.shiftType !== 'rest'
+      ).length;
+      employeeWorkload.set(emp.id, count);
+    }
+
+    for (const shift of shifts) {
+      const available = getAvailableReplacements(shift);
+      const sorted = available.sort((a, b) => {
+        const workloadA = employeeWorkload.get(a.id) || 0;
+        const workloadB = employeeWorkload.get(b.id) || 0;
+        return workloadA - workloadB;
+      });
+      recommendations.set(shift.id, sorted.map((e) => e.id));
+    }
+
+    return recommendations;
+  };
+
   const getEmployeeName = (id: string) =>
     employees.find((e) => e.id === id)?.name || '未知员工';
 
@@ -137,20 +237,39 @@ export default function LeaveApproval() {
     });
   };
 
+  const openConflictModal = (request: LeaveRequest) => {
+    const conflictingShifts = getConflictingShifts(request);
+    const replacementMap: Record<string, string> = {};
+
+    for (const shift of conflictingShifts) {
+      const available = getAvailableReplacements(shift);
+      if (available.length > 0) {
+        replacementMap[shift.id] = available[0].id;
+      }
+    }
+
+    setResolution({
+      request,
+      conflictingShifts,
+      action: null,
+      replacementMap,
+      smartAssignments: [],
+      processing: false,
+      success: false,
+      error: null
+    });
+    setShowConflictModal(true);
+  };
+
   const handleApprove = (id: string) => {
+    setError(null);
     const request = leaveRequests.find((r) => r.id === id);
     if (!request) return;
 
-    const dates = getDateRange(request.startDate, request.endDate);
-    for (const date of dates) {
-      const hasWorkShift = shiftSchedules.some(
-        (s) => s.employeeId === request.employeeId && s.date === date && s.shiftType !== 'rest'
-      );
-      if (hasWorkShift) {
-        setError('该请假时段内已有排班，请先处理排班冲突后再审批');
-        setTimeout(() => setError(null), 5000);
-        return;
-      }
+    const conflictingShifts = getConflictingShifts(request);
+    if (conflictingShifts.length > 0) {
+      openConflictModal(request);
+      return;
     }
 
     approveLeaveRequest(id, 'emp-006');
@@ -158,6 +277,87 @@ export default function LeaveApproval() {
 
   const handleReject = (id: string) => {
     rejectLeaveRequest(id, 'emp-006');
+  };
+
+  const applySmartAssignments = () => {
+    const recommendations = getSmartRecommendation(resolution.conflictingShifts);
+    const assignments: ConflictResolutionState['smartAssignments'] = [];
+    let valid = true;
+
+    for (const shift of resolution.conflictingShifts) {
+      const recs = recommendations.get(shift.id) || [];
+      if (recs.length === 0) {
+        valid = false;
+        continue;
+      }
+      const selectedId = recs[0];
+      assignments.push({
+        shiftId: shift.id,
+        employeeId: selectedId,
+        employeeName: getEmployeeName(selectedId)
+      });
+    }
+
+    if (!valid) {
+      setResolution((prev) => ({
+        ...prev,
+        error: '部分班次无可用替换人选，请使用手动替换或清除排班'
+      }));
+      return;
+    }
+
+    setResolution((prev) => ({
+      ...prev,
+      action: 'smart',
+      smartAssignments: assignments,
+      error: null
+    }));
+  };
+
+  const executeResolution = async () => {
+    if (!resolution.action) return;
+
+    setResolution((prev) => ({ ...prev, processing: true, error: null }));
+
+    try {
+      if (resolution.action === 'clear') {
+        for (const shift of resolution.conflictingShifts) {
+          deleteShiftSchedule(shift.id);
+        }
+      } else if (resolution.action === 'replace') {
+        for (const shift of resolution.conflictingShifts) {
+          const replacementId = resolution.replacementMap[shift.id];
+          if (!replacementId) {
+            throw new Error(`请为 ${formatDisplayDate(shift.date)} ${SHIFT_CONFIG[shift.shiftType].label} 选择替换人`);
+          }
+          updateShiftSchedule(shift.id, { employeeId: replacementId });
+        }
+      } else if (resolution.action === 'smart') {
+        for (const assignment of resolution.smartAssignments) {
+          updateShiftSchedule(assignment.shiftId, { employeeId: assignment.employeeId });
+        }
+      }
+
+      approveLeaveRequest(resolution.request.id, 'emp-006');
+
+      setResolution((prev) => ({ ...prev, success: true }));
+      setTimeout(() => {
+        setShowConflictModal(false);
+        setResolution(initialResolution);
+      }, 1200);
+    } catch (e) {
+      setResolution((prev) => ({
+        ...prev,
+        processing: false,
+        error: e instanceof Error ? e.message : '操作失败，请重试'
+      }));
+    }
+  };
+
+  const closeConflictModal = () => {
+    if (resolution.processing) return;
+    setShowConflictModal(false);
+    setResolution(initialResolution);
   };
 
   const handleSubmit = () => {
@@ -196,7 +396,7 @@ export default function LeaveApproval() {
     <div className="space-y-6">
       <PageHeader
         title="请假审批"
-        description="管理员工请假申请与审批，自动检测与排班的冲突"
+        description="管理员工请假申请与审批，自动检测与排班的冲突，支持一键换班"
         actions={
           <button onClick={() => setShowModal(true)} className="btn-primary">
             <Plus className="w-5 h-5 mr-1.5" />
@@ -428,13 +628,11 @@ export default function LeaveApproval() {
                   onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
                 >
                   <option value="">请选择员工</option>
-                  {employees
-                    .filter((e) => e.status === 'active')
-                    .map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name}
-                      </option>
-                    ))}
+                  {activeEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -497,6 +695,284 @@ export default function LeaveApproval() {
               >
                 确认提交
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConflictModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl animate-fade-in max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-primary-100 flex-shrink-0">
+              <h2 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                排班冲突处理
+              </h2>
+              <button
+                onClick={closeConflictModal}
+                disabled={resolution.processing}
+                className="p-1.5 rounded-lg hover:bg-primary-50 transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5 text-neutral-muted" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {resolution.error && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <span>{resolution.error}</span>
+                </div>
+              )}
+              {resolution.success && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700">
+                  <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium">处理成功！已批准请假申请</span>
+                </div>
+              )}
+
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-amber-800 font-medium">
+                      {getEmployeeName(resolution.request.employeeId)} 在请假期间
+                      （{formatDate(resolution.request.startDate)} 至 {formatDate(resolution.request.endDate)}）
+                      有 {resolution.conflictingShifts.length} 个班次需要处理
+                    </p>
+                    <p className="text-sm text-amber-600 mt-1">
+                      请选择以下方式之一处理排班冲突
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="label-text mb-3 block">冲突班次列表</label>
+                <div className="border border-primary-100 rounded-xl overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-primary-50 border-b border-primary-100">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-primary-700">日期</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-primary-700">班次</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-primary-700">当前员工</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-primary-700">
+                          {resolution.action === 'replace' ? '替换为 *' : '替换人选'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-primary-50">
+                      {resolution.conflictingShifts.map((shift) => {
+                        const config = SHIFT_CONFIG[shift.shiftType];
+                        const Icon = config.icon;
+                        const available = getAvailableReplacements(shift);
+                        const selectedId = resolution.action === 'smart'
+                          ? resolution.smartAssignments.find((a) => a.shiftId === shift.id)?.employeeId
+                          : resolution.replacementMap[shift.id];
+
+                        return (
+                          <tr key={shift.id}>
+                            <td className="px-4 py-3 text-sm text-neutral-text">
+                              {formatDisplayDate(shift.date)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+                                <Icon className="w-3 h-3" />
+                                {config.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-neutral-text">
+                              {getEmployeeName(shift.employeeId)}
+                            </td>
+                            <td className="px-4 py-3">
+                              {resolution.action === 'clear' ? (
+                                <span className="text-sm text-rose-600 font-medium">将被清除</span>
+                              ) : resolution.action === 'smart' ? (
+                                <span className="text-sm text-green-700 font-medium">
+                                  {selectedId ? getEmployeeName(selectedId) : '-'}
+                                </span>
+                              ) : (
+                                <select
+                                  className="input-field text-sm py-1.5 h-auto min-h-[36px]"
+                                  value={selectedId || ''}
+                                  onChange={(e) =>
+                                    setResolution((prev) => ({
+                                      ...prev,
+                                      action: 'replace',
+                                      replacementMap: {
+                                        ...prev.replacementMap,
+                                        [shift.id]: e.target.value
+                                      },
+                                      error: null
+                                    }))
+                                  }
+                                  disabled={resolution.processing}
+                                >
+                                  <option value="">请选择替换人</option>
+                                  {available.map((emp) => (
+                                    <option key={emp.id} value={emp.id}>
+                                      {emp.name}
+                                    </option>
+                                  ))}
+                                  {available.length === 0 && (
+                                    <option value="" disabled>无可用替换人</option>
+                                  )}
+                                </select>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <label className="label-text mb-3 block">选择处理方式</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button
+                    onClick={() =>
+                      setResolution((prev) => ({
+                        ...prev,
+                        action: 'replace',
+                        error: null,
+                        smartAssignments: []
+                      }))
+                    }
+                    disabled={resolution.processing}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      resolution.action === 'replace'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-primary-100 bg-white hover:border-primary-300 hover:bg-primary-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <ArrowRightLeft className={`w-5 h-5 ${
+                        resolution.action === 'replace' ? 'text-primary-600' : 'text-primary-400'
+                      }`} />
+                      <span className={`font-semibold ${
+                        resolution.action === 'replace' ? 'text-primary-800' : 'text-neutral-text'
+                      }`}>手动替换</span>
+                    </div>
+                    <p className="text-xs text-neutral-muted">逐个选择替换人，需确保新员工当天无排班且无请假</p>
+                  </button>
+
+                  <button
+                    onClick={applySmartAssignments}
+                    disabled={resolution.processing}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      resolution.action === 'smart'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-primary-100 bg-white hover:border-primary-300 hover:bg-primary-50/50'
+                    } disabled:opacity-60`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className={`w-5 h-5 ${
+                        resolution.action === 'smart' ? 'text-primary-600' : 'text-primary-400'
+                      }`} />
+                      <span className={`font-semibold ${
+                        resolution.action === 'smart' ? 'text-primary-800' : 'text-neutral-text'
+                      }`}>智能排班</span>
+                    </div>
+                    <p className="text-xs text-neutral-muted">系统自动推荐排班最少的员工作为替换人</p>
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setResolution((prev) => ({
+                        ...prev,
+                        action: 'clear',
+                        error: null,
+                        smartAssignments: []
+                      }))
+                    }
+                    disabled={resolution.processing}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      resolution.action === 'clear'
+                        ? 'border-rose-500 bg-rose-50'
+                        : 'border-primary-100 bg-white hover:border-rose-300 hover:bg-rose-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Trash2 className={`w-5 h-5 ${
+                        resolution.action === 'clear' ? 'text-rose-600' : 'text-rose-400'
+                      }`} />
+                      <span className={`font-semibold ${
+                        resolution.action === 'clear' ? 'text-rose-700' : 'text-neutral-text'
+                      }`}>清除排班</span>
+                    </div>
+                    <p className="text-xs text-neutral-muted">直接删除该员工的所有冲突排班，不安排替换</p>
+                  </button>
+                </div>
+              </div>
+
+              {resolution.action === 'smart' && resolution.smartAssignments.length > 0 && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">智能推荐结果</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {resolution.smartAssignments.map((a) => {
+                      const shift = resolution.conflictingShifts.find((s) => s.id === a.shiftId);
+                      if (!shift) return null;
+                      const config = SHIFT_CONFIG[shift.shiftType];
+                      return (
+                        <div key={a.shiftId} className="flex items-center gap-2 text-sm text-green-700">
+                          <span>{formatDisplayDate(shift.date)}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${config.color}`}>
+                            {config.label}
+                          </span>
+                          <span className="text-green-500">→</span>
+                          <span className="font-medium">{a.employeeName}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center p-6 border-t border-primary-100 bg-primary-50/50 flex-shrink-0">
+              <div className="flex items-center gap-2 text-sm text-neutral-muted">
+                <Users className="w-4 h-4" />
+                <span>当前共 {activeEmployees.length} 名在岗员工</span>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeConflictModal}
+                  className="btn-secondary"
+                  disabled={resolution.processing || resolution.success}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={executeResolution}
+                  disabled={
+                    !resolution.action ||
+                    resolution.processing ||
+                    resolution.success ||
+                    (resolution.action === 'replace' &&
+                      resolution.conflictingShifts.some((s) => !resolution.replacementMap[s.id]))
+                  }
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resolution.processing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />
+                      处理中...
+                    </>
+                  ) : resolution.success ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      成功
+                    </>
+                  ) : (
+                    <>确认处理并批准</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
