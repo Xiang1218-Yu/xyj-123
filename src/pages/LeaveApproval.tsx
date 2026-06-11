@@ -143,10 +143,10 @@ export default function LeaveApproval() {
 
     const dates = getDateRange(request.startDate, request.endDate);
     for (const date of dates) {
-      const hasShift = shiftSchedules.some(
-        (s) => s.employeeId === request.employeeId && s.date === date
+      const hasWorkShift = shiftSchedules.some(
+        (s) => s.employeeId === request.employeeId && s.date === date && s.shiftType !== 'rest'
       );
-      if (hasShift) {
+      if (hasWorkShift) {
         setError('该请假时段内已有排班，请先处理排班冲突后再审批');
         setTimeout(() => setError(null), 5000);
         return;
