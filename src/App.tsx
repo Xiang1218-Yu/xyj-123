@@ -16,12 +16,14 @@ import PackageForm from "@/pages/PackageForm";
 import AlbumList from "@/pages/AlbumList";
 import AlbumDetail from "@/pages/AlbumDetail";
 import AlbumForm from "@/pages/AlbumForm";
+import OwnerAlbum from "@/pages/OwnerAlbum";
 
 export default function App() {
   return (
     <Router>
       <Routes>
         <Route path="/booking" element={<AppointmentBooking />} />
+        <Route path="/owner-album" element={<OwnerAlbum />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/pets" element={<PetList />} />

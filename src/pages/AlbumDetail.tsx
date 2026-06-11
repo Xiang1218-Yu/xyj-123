@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageHeader from '@/components/PageHeader';
+import { compressImage } from '@/lib/imageUtils';
 import type { Photo } from '@/shared/types';
 
 export default function AlbumDetail() {
@@ -25,15 +26,23 @@ export default function AlbumDetail() {
   const {
     pets,
     owners,
-    getAlbumById,
-    getPhotosByAlbumId,
+    albums,
+    photos: allPhotos,
     addPhoto,
     updatePhoto,
     deletePhoto,
   } = useAppStore();
 
-  const album = id ? getAlbumById(id) : undefined;
-  const photos = id ? getPhotosByAlbumId(id) : [];
+  const album = id ? albums.find((a) => a.id === id) : undefined;
+  const photos = id
+    ? allPhotos
+        .filter((p) => p.albumId === id)
+        .sort((a, b) => {
+          const dateA = a.takenAt ?? a.uploadedAt;
+          const dateB = b.takenAt ?? b.uploadedAt;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        })
+    : [];
   const pet = album ? pets.find((p) => p.id === album.petId) : undefined;
   const owner = album ? owners.find((o) => o.id === album.ownerId) : undefined;
 
@@ -43,20 +52,26 @@ export default function AlbumDetail() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoNote, setNewPhotoNote] = useState('');
   const [newPhotoTakenAt, setNewPhotoTakenAt] = useState('');
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewPhotoUrl(reader.result as string);
+    setIsUploading(true);
+    try {
+      const compressed = await compressImage(file, 1920, 1080, 0.8);
+      setNewPhotoUrl(compressed);
       setIsAddingPhoto(true);
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('图片处理失败:', error);
+      alert('图片处理失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -199,6 +214,13 @@ export default function AlbumDetail() {
           </div>
         </div>
       </div>
+
+      {isUploading && (
+        <div className="card mb-8 text-center py-10">
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-neutral-text font-medium">正在处理图片...</p>
+        </div>
+      )}
 
       {isAddingPhoto && (
         <div className="card mb-8 animate-scale-in">
