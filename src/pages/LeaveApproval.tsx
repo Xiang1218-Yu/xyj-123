@@ -27,6 +27,7 @@ import type { LeaveRequest, ShiftSchedule, ShiftType } from '@/shared/types';
 
 type TabFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type ConflictAction = 'replace' | 'smart' | 'clear' | null;
+type ConflictMode = 'create' | 'approve';
 
 const SHIFT_CONFIG: Record<ShiftType, { label: string; color: string; icon: typeof Sun }> = {
   morning: { label: '早班', color: 'text-blue-700 bg-blue-100', icon: Sun },
@@ -65,6 +66,8 @@ interface NewLeaveForm {
 
 interface ConflictResolutionState {
   request: LeaveRequest;
+  mode: ConflictMode;
+  createFormData?: NewLeaveForm;
   conflictingShifts: ShiftSchedule[];
   action: ConflictAction;
   replacementMap: Record<string, string>;
@@ -84,6 +87,7 @@ const initialForm: NewLeaveForm = {
 
 const initialResolution: ConflictResolutionState = {
   request: null as unknown as LeaveRequest,
+  mode: 'approve',
   conflictingShifts: [],
   action: null,
   replacementMap: {},
@@ -237,7 +241,7 @@ export default function LeaveApproval() {
     });
   };
 
-  const openConflictModal = (request: LeaveRequest) => {
+  const openConflictModal = (request: LeaveRequest, mode: ConflictMode = 'approve', createFormData?: NewLeaveForm) => {
     const conflictingShifts = getConflictingShifts(request);
     const replacementMap: Record<string, string> = {};
 
@@ -250,6 +254,8 @@ export default function LeaveApproval() {
 
     setResolution({
       request,
+      mode,
+      createFormData,
       conflictingShifts,
       action: null,
       replacementMap,
@@ -338,11 +344,24 @@ export default function LeaveApproval() {
         }
       }
 
-      approveLeaveRequest(resolution.request.id, 'emp-006');
+      if (resolution.mode === 'approve') {
+        approveLeaveRequest(resolution.request.id, 'emp-006');
+      } else if (resolution.mode === 'create' && resolution.createFormData) {
+        addLeaveRequest({
+          employeeId: resolution.createFormData.employeeId,
+          type: resolution.createFormData.type,
+          startDate: resolution.createFormData.startDate,
+          endDate: resolution.createFormData.endDate,
+          reason: resolution.createFormData.reason.trim(),
+          status: 'pending'
+        });
+      }
 
       setResolution((prev) => ({ ...prev, success: true }));
       setTimeout(() => {
         setShowConflictModal(false);
+        setShowModal(false);
+        setForm(initialForm);
         setResolution(initialResolution);
       }, 1200);
     } catch (e) {
@@ -369,7 +388,17 @@ export default function LeaveApproval() {
     }
 
     if (conflictInfo?.hasConflict) {
-      setError(`请先处理排班冲突：${conflictInfo.messages.join('、')} 已有排班`);
+      const tempRequest: LeaveRequest = {
+        id: 'temp-create',
+        employeeId: form.employeeId,
+        type: form.type,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        reason: form.reason.trim(),
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      openConflictModal(tempRequest, 'create', { ...form });
       return;
     }
 
@@ -609,14 +638,35 @@ export default function LeaveApproval() {
                 </div>
               )}
               {conflictInfo?.hasConflict && (
-                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-amber-700 font-medium">检测到排班冲突</p>
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      {conflictInfo.messages.join('、')} 已有排班，请先处理排班冲突
-                    </p>
+                <div className="flex items-start justify-between gap-3 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-amber-700 font-medium">检测到排班冲突</p>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        {conflictInfo.messages.join('、')} 已有排班
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      const tempRequest: LeaveRequest = {
+                        id: 'temp-create',
+                        employeeId: form.employeeId,
+                        type: form.type,
+                        startDate: form.startDate,
+                        endDate: form.endDate,
+                        reason: form.reason.trim(),
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                      };
+                      openConflictModal(tempRequest, 'create', { ...form });
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors flex-shrink-0"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    处理冲突
+                  </button>
                 </div>
               )}
 
@@ -690,10 +740,10 @@ export default function LeaveApproval() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.employeeId || !form.startDate || !form.endDate || !form.reason.trim() || conflictInfo?.hasConflict}
+                disabled={!form.employeeId || !form.startDate || !form.endDate || !form.reason.trim()}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                确认提交
+                {conflictInfo?.hasConflict ? '处理冲突并提交' : '确认提交'}
               </button>
             </div>
           </div>
@@ -706,7 +756,7 @@ export default function LeaveApproval() {
             <div className="flex items-center justify-between p-6 border-b border-primary-100 flex-shrink-0">
               <h2 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                排班冲突处理
+                {resolution.mode === 'create' ? '创建请假 - 排班冲突处理' : '排班冲突处理'}
               </h2>
               <button
                 onClick={closeConflictModal}
@@ -727,7 +777,9 @@ export default function LeaveApproval() {
               {resolution.success && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700">
                   <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                  <span className="font-medium">处理成功！已批准请假申请</span>
+                  <span className="font-medium">
+                    {resolution.mode === 'create' ? '处理成功！已提交请假申请' : '处理成功！已批准请假申请'}
+                  </span>
                 </div>
               )}
 
@@ -968,6 +1020,8 @@ export default function LeaveApproval() {
                       <CheckCircle2 className="w-4 h-4 mr-1.5" />
                       成功
                     </>
+                  ) : resolution.mode === 'create' ? (
+                    <>确认处理并提交</>
                   ) : (
                     <>确认处理并批准</>
                   )}
