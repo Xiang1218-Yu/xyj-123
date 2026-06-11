@@ -12,7 +12,8 @@ import {
   BookOpen,
   AlertCircle,
   CheckCircle2,
-  Info
+  Info,
+  LucideIcon
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import {
@@ -30,6 +31,88 @@ const articleTypes: BreedArticle['articleType'][] = [
   'other'
 ];
 
+interface InputFieldProps {
+  icon: LucideIcon;
+  label: string;
+  field: string;
+  type?: string;
+  placeholder: string;
+  required?: boolean;
+  rows?: number;
+  multiline?: boolean;
+  value: string;
+  error?: string;
+  inputId?: string;
+  onChange: (field: string, value: string) => void;
+}
+
+function InputField({
+  icon: Icon,
+  label,
+  field,
+  type = 'text',
+  placeholder,
+  required,
+  rows,
+  multiline = false,
+  value,
+  error,
+  inputId,
+  onChange
+}: InputFieldProps) {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    onChange(field, e.target.value);
+  };
+
+  return (
+    <div>
+      <label className="flex items-center gap-1.5 text-sm font-medium text-primary-900 mb-2">
+        <Icon className="w-4 h-4 text-primary-600" />
+        {label}
+        {required && <span className="text-red-500">*</span>}
+      </label>
+      {multiline ? (
+        <textarea
+          id={inputId}
+          rows={rows ?? 4}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleInputChange}
+          className={`input-field resize-none font-mono text-sm leading-relaxed ${
+            error ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
+          }`}
+        />
+      ) : (
+        <input
+          id={inputId}
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleInputChange}
+          className={`input-field ${
+            error ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
+          }`}
+        />
+      )}
+      {error && (
+        <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type FormData = {
+  title: string;
+  summary: string;
+  content: string;
+  author: string;
+  articleType: BreedArticle['articleType'];
+  coverImage: string;
+};
+
 export default function BreedArticleForm() {
   const { id, articleId } = useParams<{ id: string; articleId?: string }>();
   const navigate = useNavigate();
@@ -44,12 +127,12 @@ export default function BreedArticleForm() {
   const breed = id ? getPetBreedById(id) : undefined;
   const existingArticle = articleId ? getBreedArticleById(articleId) : undefined;
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     summary: '',
     content: '',
     author: '',
-    articleType: 'care' as BreedArticle['articleType'],
+    articleType: 'care',
     coverImage: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -100,10 +183,7 @@ export default function BreedArticleForm() {
     }
   };
 
-  const handleChange = (
-    field: keyof typeof formData,
-    value: string
-  ) => {
+  const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -161,63 +241,6 @@ export default function BreedArticleForm() {
     );
   }
 
-  const InputField = ({
-    icon: Icon,
-    label,
-    field,
-    type = 'text',
-    placeholder,
-    required,
-    rows,
-    multiline = false
-  }: {
-    icon: typeof Type;
-    label: string;
-    field: keyof typeof formData;
-    type?: string;
-    placeholder: string;
-    required?: boolean;
-    rows?: number;
-    multiline?: boolean;
-  }) => (
-    <div>
-      <label className="flex items-center gap-1.5 text-sm font-medium text-primary-900 mb-2">
-        <Icon className="w-4 h-4 text-primary-600" />
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </label>
-      {multiline ? (
-        <textarea
-          id={field === 'content' ? 'content-input' : undefined}
-          rows={rows ?? 4}
-          placeholder={placeholder}
-          value={formData[field]}
-          onChange={(e) => handleChange(field, e.target.value)}
-          className={`input-field resize-none font-mono text-sm leading-relaxed ${
-            errors[field] ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
-          }`}
-        />
-      ) : (
-        <input
-          id={field === 'content' ? 'content-input' : undefined}
-          type={type}
-          placeholder={placeholder}
-          value={formData[field]}
-          onChange={(e) => handleChange(field, e.target.value)}
-          className={`input-field ${
-            errors[field] ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
-          }`}
-        />
-      )}
-      {errors[field] && (
-        <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-          <AlertCircle className="w-3.5 h-3.5" />
-          {errors[field]}
-        </p>
-      )}
-    </div>
-  );
-
   return (
     <div className="relative max-w-4xl mx-auto">
       <div className="mb-6">
@@ -252,6 +275,9 @@ export default function BreedArticleForm() {
                   field="title"
                   placeholder="例如：金毛寻回犬日常护理全指南"
                   required
+                  value={formData.title}
+                  error={errors.title}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -263,6 +289,9 @@ export default function BreedArticleForm() {
                   placeholder="简要描述文章内容，会显示在文章卡片和阅读页顶部（可选）"
                   multiline
                   rows={2}
+                  value={formData.summary}
+                  error={errors.summary}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -296,6 +325,9 @@ export default function BreedArticleForm() {
                   label="作者"
                   field="author"
                   placeholder="例如：宠物医师-李医生（可选）"
+                  value={formData.author}
+                  error={errors.author}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -305,6 +337,9 @@ export default function BreedArticleForm() {
                   label="封面图片 URL"
                   field="coverImage"
                   placeholder="粘贴图片链接（可选，会显示在文章卡片和阅读页顶部）"
+                  value={formData.coverImage}
+                  error={errors.coverImage}
+                  onChange={handleChange}
                 />
                 {formData.coverImage && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-primary-100 max-h-48 bg-primary-50">
@@ -350,22 +385,19 @@ export default function BreedArticleForm() {
                     </div>
                   </div>
                 </div>
-                <textarea
-                  id="content-input"
-                  rows={16}
+                <InputField
+                  icon={FileText}
+                  label=""
+                  field="content"
                   placeholder={`用 Markdown 格式撰写文章内容...\n\n示例：\n## 章节标题\n\n这是一段正文内容。\n\n- 要点一\n- 要点二\n- 要点三`}
+                  multiline
+                  rows={16}
+                  required
+                  inputId="content-input"
                   value={formData.content}
-                  onChange={(e) => handleChange('content', e.target.value)}
-                  className={`input-field resize-none font-mono text-sm leading-relaxed min-h-[320px] ${
-                    errors.content ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''
-                  }`}
+                  error={errors.content}
+                  onChange={handleChange}
                 />
-                {errors.content && (
-                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    {errors.content}
-                  </p>
-                )}
               </div>
             </div>
 
