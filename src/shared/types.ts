@@ -18,6 +18,46 @@ export interface Pet {
   notes?: string;
 }
 
+export interface CeremonyItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit?: string;
+  category?: 'decoration' | 'supplies' | 'ritual' | 'other';
+  note?: string;
+}
+
+export interface CeremonyFlowStep {
+  id: string;
+  title: string;
+  description: string;
+  duration?: number;
+  sortOrder: number;
+}
+
+export type CeremonyTemplateType = 'traditional' | 'simple' | 'religious' | 'custom';
+
+export const CeremonyTemplateTypeLabel: Record<CeremonyTemplateType, string> = {
+  traditional: '传统仪式',
+  simple: '简约仪式',
+  religious: '宗教仪式',
+  custom: '自定义仪式'
+};
+
+export interface CeremonyTemplate {
+  id: string;
+  name: string;
+  type: CeremonyTemplateType;
+  description: string;
+  coverImage?: string;
+  flowSteps: Omit<CeremonyFlowStep, 'id'>[];
+  items: Omit<CeremonyItem, 'id'>[];
+  estimatedDuration?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ceremony {
   id: string;
   petId: string;
@@ -27,6 +67,10 @@ export interface Ceremony {
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   notes?: string;
   packageId?: string;
+  templateId?: string;
+  templateType?: CeremonyTemplateType;
+  flowSteps?: CeremonyFlowStep[];
+  items?: CeremonyItem[];
 }
 
 export interface Cremation {

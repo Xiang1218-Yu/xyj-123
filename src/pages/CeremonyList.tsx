@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartHandshake, Calendar, MapPin, Users, Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { HeartHandshake, Calendar, MapPin, Users, Edit, Trash2, Plus, Eye, LayoutTemplate } from 'lucide-react';
+import { CeremonyTemplateTypeLabel } from '@/shared/types';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
 import type { Ceremony } from '@/shared/types';
@@ -94,30 +95,33 @@ export default function CeremonyList() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-primary-100">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
-                    仪式时间
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
-                    宠物名称
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
-                    地点
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
-                    状态
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
-                    参与人员
-                  </th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-muted">
-                    操作
-                  </th>
-                </tr>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      仪式时间
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      宠物名称
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      仪式类型
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      地点
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      状态
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                      参与人员
+                    </th>
+                    <th className="text-right px-4 py-3 text-sm font-medium text-neutral-muted">
+                      操作
+                    </th>
+                  </tr>
               </thead>
               <tbody>
                 {filteredCeremonies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-3">
                         <HeartHandshake className="w-7 h-7 text-primary-400" />
                       </div>
@@ -146,6 +150,17 @@ export default function CeremonyList() {
                           <HeartHandshake className="w-4 h-4 inline mr-1 text-accent" />
                           {getPetName(ceremony.petId)}
                         </button>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <LayoutTemplate className="w-4 h-4 text-primary-400" />
+                          <span className="text-sm text-neutral-text">
+                            {ceremony.templateType
+                              ? CeremonyTemplateTypeLabel[ceremony.templateType]
+                              : '自定义'
+                            }
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">

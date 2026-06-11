@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -24,7 +24,8 @@ import {
   mockContractTimelines,
   mockPetLifeStories,
   mockMemorialProducts,
-  mockMemorialOrders
+  mockMemorialOrders,
+  mockCeremonyTemplates
 } from '../data/mockData';
 
 interface AppState {
@@ -68,10 +69,17 @@ interface AppState {
   deletePet: (id: string) => void;
   getPetById: (id: string) => Pet | undefined;
 
+  ceremonyTemplates: CeremonyTemplate[];
+
   addCeremony: (ceremony: Omit<Ceremony, 'id'>) => Ceremony;
   updateCeremony: (id: string, data: Partial<Ceremony>) => void;
   deleteCeremony: (id: string) => void;
   getCeremonyById: (id: string) => Ceremony | undefined;
+
+  getCeremonyTemplateById: (id: string) => CeremonyTemplate | undefined;
+  getActiveCeremonyTemplates: () => CeremonyTemplate[];
+  generateFlowStepsFromTemplate: (templateId: string) => CeremonyFlowStep[];
+  generateItemsFromTemplate: (templateId: string) => CeremonyItem[];
 
   addCremation: (cremation: Omit<Cremation, 'id'>) => Cremation;
   updateCremation: (id: string, data: Partial<Cremation>) => void;
@@ -218,6 +226,7 @@ export const useAppStore = create<AppState>()(
       owners: mockOwners,
       pets: mockPets,
       ceremonies: mockCeremonies,
+      ceremonyTemplates: mockCeremonyTemplates,
       cremations: mockCremations,
       urns: mockUrns,
       reminders: mockReminders,
@@ -295,6 +304,25 @@ export const useAppStore = create<AppState>()(
           ceremonies: state.ceremonies.filter((c) => c.id !== id)
         })),
       getCeremonyById: (id) => get().ceremonies.find((c) => c.id === id),
+
+      getCeremonyTemplateById: (id) => get().ceremonyTemplates.find((t) => t.id === id),
+      getActiveCeremonyTemplates: () => get().ceremonyTemplates.filter((t) => t.isActive),
+      generateFlowStepsFromTemplate: (templateId) => {
+        const template = get().getCeremonyTemplateById(templateId);
+        if (!template) return [];
+        return template.flowSteps.map((step, index) => ({
+          ...step,
+          id: generateId('step')
+        }));
+      },
+      generateItemsFromTemplate: (templateId) => {
+        const template = get().getCeremonyTemplateById(templateId);
+        if (!template) return [];
+        return template.items.map((item) => ({
+          ...item,
+          id: generateId('item')
+        }));
+      },
 
       addCremation: (cremation) => {
         const newCremation = { ...cremation, id: generateId('cremation') };
@@ -1179,6 +1207,7 @@ export const useAppStore = create<AppState>()(
         owners: state.owners,
         pets: state.pets,
         ceremonies: state.ceremonies,
+        ceremonyTemplates: state.ceremonyTemplates,
         cremations: state.cremations,
         urns: state.urns,
         reminders: state.reminders,

@@ -82,6 +82,104 @@ export const mockPets: Pet[] = [
   }
 ];
 
+export const mockCeremonyTemplates: CeremonyTemplate[] = [
+  {
+    id: 'tpl-traditional-001',
+    name: '传统告别仪式',
+    type: 'traditional',
+    description: '庄重肃穆的传统告别仪式，包含完整的祭奠流程，适合希望为宠物举办隆重告别仪式的家庭。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20traditional%20pet%20memorial%20ceremony%20with%20elegant%20flower%20arrangements%20and%20candles%2C%20solemn%20and%20respectful%20atmosphere%2C%20warm%20lighting&image_size=landscape_16_9',
+    flowSteps: [
+      { title: '入场签到', description: '家属及宾客入场，在签到簿上留下名字和寄语，领取悼念胸花。', duration: 15, sortOrder: 1 },
+      { title: '仪式开始', description: '主持人致开场白，介绍仪式流程，全体默哀一分钟。', duration: 10, sortOrder: 2 },
+      { title: '宠物生平介绍', description: '主持人讲述宠物的一生，回顾与主人相伴的美好时光。', duration: 15, sortOrder: 3 },
+      { title: '家属致辞', description: '主人及家属代表上台发表感言，分享与宠物的珍贵回忆。', duration: 20, sortOrder: 4 },
+      { title: '敬献鲜花', description: '家属及宾客依次上前，为宠物献上鲜花，表达思念之情。', duration: 20, sortOrder: 5 },
+      { title: '祭拜仪式', description: '传统三鞠躬祭拜仪式，敬香、献果、祭酒。', duration: 15, sortOrder: 6 },
+      { title: '封棺/封盒仪式', description: '主人见宠物最后一面，由工作人员完成封棺/封盒。', duration: 15, sortOrder: 7 },
+      { title: '仪式结束', description: '主持人致结束语，家属答谢宾客，仪式圆满结束。', duration: 10, sortOrder: 8 }
+    ],
+    items: [
+      { name: '遗像相框', quantity: 1, unit: '个', category: 'decoration', note: '8寸实木相框' },
+      { name: '白菊花束', quantity: 10, unit: '束', category: 'decoration' },
+      { name: '白蜡烛', quantity: 6, unit: '对', category: 'ritual' },
+      { name: '香', quantity: 3, unit: '柱', category: 'ritual' },
+      { name: '果盘', quantity: 3, unit: '盘', category: 'ritual', note: '时令水果' },
+      { name: '祭酒', quantity: 1, unit: '杯', category: 'ritual' },
+      { name: '悼念胸花', quantity: 20, unit: '个', category: 'supplies' },
+      { name: '签到簿', quantity: 1, unit: '本', category: 'supplies' },
+      { name: '纪念卡片', quantity: 20, unit: '张', category: 'supplies' },
+      { name: '纸巾', quantity: 2, unit: '盒', category: 'supplies' },
+      { name: '矿泉水', quantity: 20, unit: '瓶', category: 'other' }
+    ],
+    estimatedDuration: 120,
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-simple-001',
+    name: '简约温馨仪式',
+    type: 'simple',
+    description: '简洁而不失温度的告别仪式，适合追求简单温馨氛围的家庭，在安静祥和的气氛中送别爱宠。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20simple%20and%20warm%20pet%20memorial%20ceremony%20with%20soft%20lighting%20and%20minimalist%20decor%2C%20peaceful%20and%20cozy%20atmosphere&image_size=landscape_16_9',
+    flowSteps: [
+      { title: '入场就座', description: '家属入场，在舒缓的音乐中就座，仪式准备开始。', duration: 10, sortOrder: 1 },
+      { title: '默哀追思', description: '全体默哀三分钟，在心中回忆与宠物相伴的点点滴滴。', duration: 5, sortOrder: 2 },
+      { title: '温馨回顾', description: '播放宠物生前照片视频，配合轻柔音乐，共同回顾美好时光。', duration: 15, sortOrder: 3 },
+      { title: '主人诉说', description: '主人分享与宠物之间最难忘的故事和情感。', duration: 15, sortOrder: 4 },
+      { title: '献花道别', description: '每位家属手持一枝鲜花，上前与宠物道别。', duration: 15, sortOrder: 5 },
+      { title: '仪式结束', description: '在轻音乐中仪式结束，工作人员引导家属休息。', duration: 5, sortOrder: 6 }
+    ],
+    items: [
+      { name: '遗像相框', quantity: 1, unit: '个', category: 'decoration', note: '7寸简约相框' },
+      { name: '白玫瑰', quantity: 6, unit: '枝', category: 'decoration' },
+      { name: 'LED电子蜡烛', quantity: 4, unit: '个', category: 'decoration' },
+      { name: '纪念册', quantity: 1, unit: '本', category: 'supplies', note: '可粘贴照片' },
+      { name: '纸巾', quantity: 1, unit: '盒', category: 'supplies' },
+      { name: '温水', quantity: 6, unit: '杯', category: 'other' }
+    ],
+    estimatedDuration: 60,
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-religious-001',
+    name: '佛教超度仪式',
+    type: 'religious',
+    description: '按照佛教传统仪轨举行的超度仪式，为宠物诵经祈福，祈愿它往生善道、离苦得乐。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20peaceful%20Buddhist%20pet%20memorial%20ceremony%20with%20incense%20and%20lotus%20flowers%2C%20serene%20and%20spiritual%20atmosphere%2C%20soft%20golden%20light&image_size=landscape_16_9',
+    flowSteps: [
+      { title: '洒净仪式', description: '法师手持杨枝净水，为坛场及宠物洒净，清净业障。', duration: 10, sortOrder: 1 },
+      { title: '召请圣众', description: '焚香召请诸佛菩萨、护法龙天降临道场，加持宠物。', duration: 10, sortOrder: 2 },
+      { title: '诵经超度', description: '法师诵念《往生咒》《地藏经》等经文，为宠物超度。', duration: 30, sortOrder: 3 },
+      { title: '授三皈依', description: '为宠物授三皈依，种下菩提种子，结下法缘。', duration: 15, sortOrder: 4 },
+      { title: '回向', description: '将诵经功德回向给宠物，祈愿它离苦得乐、往生净土。', duration: 10, sortOrder: 5 },
+      { title: '家属祭拜', description: '家属依次上香、礼拜，表达对宠物的思念与祝福。', duration: 20, sortOrder: 6 },
+      { title: '仪式圆满', description: '法师致答谢词，仪式圆满结束，家属祭拜后可离开。', duration: 10, sortOrder: 7 }
+    ],
+    items: [
+      { name: '佛像', quantity: 1, unit: '尊', category: 'ritual', note: '阿弥陀佛像' },
+      { name: '莲花灯', quantity: 2, unit: '对', category: 'decoration' },
+      { name: '酥油灯', quantity: 7, unit: '盏', category: 'ritual', note: '七星灯' },
+      { name: '立香', quantity: 1, unit: '把', category: 'ritual' },
+      { name: '檀香', quantity: 1, unit: '盒', category: 'ritual' },
+      { name: '供果', quantity: 5, unit: '盘', category: 'ritual', note: '五果' },
+      { name: '净水', quantity: 1, unit: '杯', category: 'ritual' },
+      { name: '往生被', quantity: 1, unit: '条', category: 'ritual' },
+      { name: '咒轮', quantity: 1, unit: '张', category: 'ritual', note: '往生咒轮' },
+      { name: '念珠', quantity: 1, unit: '串', category: 'ritual', note: '可放置骨灰盒旁' },
+      { name: '莲花', quantity: 3, unit: '朵', category: 'decoration' },
+      { name: '功德簿', quantity: 1, unit: '本', category: 'supplies' }
+    ],
+    estimatedDuration: 90,
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  }
+];
+
 export const mockCeremonies: Ceremony[] = [
   {
     id: 'ceremony-001',
@@ -91,7 +189,9 @@ export const mockCeremonies: Ceremony[] = [
     participants: '张明华及家人共8人',
     status: 'completed',
     notes: '仪式温馨庄重，家属对服务表示满意。',
-    packageId: 'package-002'
+    packageId: 'package-002',
+    templateId: 'tpl-traditional-001',
+    templateType: 'traditional'
   },
   {
     id: 'ceremony-002',
@@ -101,7 +201,9 @@ export const mockCeremonies: Ceremony[] = [
     participants: '张明华及朋友共5人',
     status: 'completed',
     notes: '老狗旺财的告别仪式，主人数度落泪。',
-    packageId: 'package-001'
+    packageId: 'package-001',
+    templateId: 'tpl-simple-001',
+    templateType: 'simple'
   },
   {
     id: 'ceremony-003',
@@ -111,7 +213,9 @@ export const mockCeremonies: Ceremony[] = [
     participants: '李小红及家人共4人',
     status: 'completed',
     notes: '咪咪的告别仪式简单而温馨。',
-    packageId: 'package-003'
+    packageId: 'package-003',
+    templateId: 'tpl-simple-001',
+    templateType: 'simple'
   }
 ];
 
