@@ -33,8 +33,6 @@ export default function OwnerAlbum() {
     pets,
     albums,
     photos,
-    addOwner,
-    addPet,
     addAlbum,
     addPhoto,
     updatePhoto,
@@ -43,16 +41,14 @@ export default function OwnerAlbum() {
 
   const [step, setStep] = useState<'auth' | 'albums' | 'detail'>('auth');
   const [phone, setPhone] = useState('');
-  const [phoneError, setPhoneError] = useState('');
   const [ownerName, setOwnerName] = useState('');
+  const [authError, setAuthError] = useState('');
   const [currentOwnerId, setCurrentOwnerId] = useState<string | null>(null);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
 
   const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
   const [newAlbumPetId, setNewAlbumPetId] = useState('');
-  const [newAlbumPetName, setNewAlbumPetName] = useState('');
-  const [newAlbumPetBreed, setNewAlbumPetBreed] = useState('');
   const [newAlbumDescription, setNewAlbumDescription] = useState('');
 
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
@@ -68,62 +64,43 @@ export default function OwnerAlbum() {
 
   const handleVerifyPhone = () => {
     if (!phone.trim()) {
-      setPhoneError('请输入手机号');
+      setAuthError('请输入手机号');
       return;
     }
     if (!validatePhone(phone)) {
-      setPhoneError('请输入正确的11位手机号码');
+      setAuthError('请输入正确的11位手机号码');
       return;
     }
-    setPhoneError('');
+    if (!ownerName.trim()) {
+      setAuthError('请输入姓名');
+      return;
+    }
+    setAuthError('');
 
-    let owner = owners.find((o) => o.phone === phone);
+    const owner = owners.find(
+      (o) => o.phone === phone.trim() && o.name === ownerName.trim()
+    );
     if (!owner) {
-      if (!ownerName.trim()) {
-        setPhoneError('该手机号未注册，请输入您的姓名完成注册');
-        return;
-      }
-      owner = addOwner({
-        name: ownerName.trim(),
-        phone: phone.trim(),
-        email: '',
-      });
+      setAuthError('手机号或姓名不匹配，请确认您已在后台注册');
+      return;
     }
     setCurrentOwnerId(owner.id);
     setStep('albums');
   };
 
   const handleCreateAlbum = () => {
-    if (!currentOwnerId || !newAlbumTitle.trim()) return;
+    if (!currentOwnerId || !newAlbumTitle.trim() || !newAlbumPetId) return;
 
-    let petId = newAlbumPetId;
-    if (!petId && newAlbumPetName.trim()) {
-      const newPet = addPet({
-        name: newAlbumPetName.trim(),
-        breed: newAlbumPetBreed.trim() || '未知品种',
-        age: '',
-        gender: 'male',
-        photoUrl: '',
-        ownerId: currentOwnerId,
-        createdAt: new Date().toISOString(),
-      });
-      petId = newPet.id;
-    }
-
-    if (petId) {
-      addAlbum({
-        title: newAlbumTitle.trim(),
-        description: newAlbumDescription.trim() || undefined,
-        petId,
-        ownerId: currentOwnerId,
-      });
-    }
+    addAlbum({
+      title: newAlbumTitle.trim(),
+      description: newAlbumDescription.trim() || undefined,
+      petId: newAlbumPetId,
+      ownerId: currentOwnerId,
+    });
 
     setIsCreatingAlbum(false);
     setNewAlbumTitle('');
     setNewAlbumPetId('');
-    setNewAlbumPetName('');
-    setNewAlbumPetBreed('');
     setNewAlbumDescription('');
   };
 
@@ -226,7 +203,7 @@ export default function OwnerAlbum() {
           <div className="bg-white rounded-3xl shadow-xl p-7">
             <h2 className="font-serif text-xl font-bold text-neutral-text mb-6 flex items-center gap-2">
               <Phone className="w-5 h-5 text-amber-600" />
-              手机号验证
+              身份验证
             </h2>
 
             <div className="space-y-4">
@@ -240,32 +217,34 @@ export default function OwnerAlbum() {
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value);
-                    setPhoneError('');
+                    setAuthError('');
                   }}
                   placeholder="请输入您的手机号"
-                  className={`input-field ${phoneError ? 'border-red-400 focus:ring-red-400' : ''}`}
+                  className={`input-field ${authError ? 'border-red-400 focus:ring-red-400' : ''}`}
                 />
-                {phoneError && (
-                  <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {phoneError}
-                  </p>
-                )}
               </div>
 
-              {!owners.find((o) => o.phone === phone) && (
-                <div>
-                  <label className="label-text flex items-center gap-1">
-                    <User className="w-4 h-4 text-primary-400" />
-                    您的姓名
-                  </label>
-                  <input
-                    type="text"
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    placeholder="首次使用请输入您的姓名"
-                    className="input-field"
-                  />
-                </div>
+              <div>
+                <label className="label-text flex items-center gap-1">
+                  <User className="w-4 h-4 text-primary-400" />
+                  姓名
+                </label>
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => {
+                    setOwnerName(e.target.value);
+                    setAuthError('');
+                  }}
+                  placeholder="请输入您的姓名"
+                  className={`input-field ${authError ? 'border-red-400 focus:ring-red-400' : ''}`}
+                />
+              </div>
+
+              {authError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {authError}
+                </p>
               )}
 
               <button
@@ -273,8 +252,12 @@ export default function OwnerAlbum() {
                 className="w-full btn-primary py-3 text-base"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
-                进入我的相册
+                登录我的相册
               </button>
+
+              <p className="text-xs text-neutral-muted text-center">
+                请使用后台注册时填写的手机号和姓名进行登录
+              </p>
             </div>
           </div>
         </div>
@@ -341,54 +324,30 @@ export default function OwnerAlbum() {
                   />
                 </div>
 
-                {ownerPets.length > 0 ? (
-                  <div>
-                    <label className="label-text flex items-center gap-1">
-                      <PawPrint className="w-4 h-4 text-primary-400" />
-                      选择宠物
-                    </label>
+                <div>
+                  <label className="label-text flex items-center gap-1">
+                    <PawPrint className="w-4 h-4 text-primary-400" />
+                    选择宠物 *
+                  </label>
+                  {ownerPets.length > 0 ? (
                     <select
                       value={newAlbumPetId}
                       onChange={(e) => setNewAlbumPetId(e.target.value)}
                       className="input-field"
                     >
-                      <option value="">-- 选择已有宠物 --</option>
+                      <option value="">-- 请选择宠物 --</option>
                       {ownerPets.map((pet) => (
                         <option key={pet.id} value={pet.id}>
                           {pet.name} ({pet.breed})
                         </option>
                       ))}
                     </select>
-                  </div>
-                ) : null}
-
-                {!newAlbumPetId && (
-                  <>
-                    <div>
-                      <label className="label-text flex items-center gap-1">
-                        <PawPrint className="w-4 h-4 text-primary-400" />
-                        或添加新宠物 - 名字
-                      </label>
-                      <input
-                        type="text"
-                        value={newAlbumPetName}
-                        onChange={(e) => setNewAlbumPetName(e.target.value)}
-                        placeholder="宠物名字"
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="label-text">品种</label>
-                      <input
-                        type="text"
-                        value={newAlbumPetBreed}
-                        onChange={(e) => setNewAlbumPetBreed(e.target.value)}
-                        placeholder="例如：金毛寻回犬"
-                        className="input-field"
-                      />
-                    </div>
-                  </>
-                )}
+                  ) : (
+                    <p className="text-sm text-neutral-muted mt-1">
+                      暂无关联宠物，请先在后台添加宠物档案
+                    </p>
+                  )}
+                </div>
 
                 <div>
                   <label className="label-text">相册描述</label>
@@ -403,7 +362,7 @@ export default function OwnerAlbum() {
 
                 <button
                   onClick={handleCreateAlbum}
-                  disabled={!newAlbumTitle.trim()}
+                  disabled={!newAlbumTitle.trim() || !newAlbumPetId}
                   className="w-full btn-primary py-3 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5 mr-2" />
