@@ -24,6 +24,9 @@ import AttendanceStats from "@/pages/AttendanceStats";
 import BreedKnowledge from "@/pages/BreedKnowledge";
 import BreedDetail from "@/pages/BreedDetail";
 import BreedArticleForm from "@/pages/BreedArticleForm";
+import ContractList from "@/pages/ContractList";
+import ContractForm from "@/pages/ContractForm";
+import ContractDetail from "@/pages/ContractDetail";
 
 export default function App() {
   return (
@@ -51,6 +54,10 @@ export default function App() {
           <Route path="/packages" element={<PackageList />} />
           <Route path="/packages/new" element={<PackageForm />} />
           <Route path="/packages/:id/edit" element={<PackageForm />} />
+          <Route path="/contracts" element={<ContractList />} />
+          <Route path="/contracts/new" element={<ContractForm />} />
+          <Route path="/contracts/:id" element={<ContractDetail />} />
+          <Route path="/contracts/:id/edit" element={<ContractForm />} />
           <Route path="/albums" element={<AlbumList />} />
           <Route path="/albums/new" element={<AlbumForm />} />
           <Route path="/albums/:id" element={<AlbumDetail />} />

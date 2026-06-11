@@ -209,3 +209,111 @@ export interface FavoriteBreed {
   breedId: string;
   favoritedAt: string;
 }
+
+export type ContractType = 'cremation' | 'ceremony' | 'comprehensive' | 'urn-storage' | 'transport' | 'other';
+
+export const ContractTypeLabel: Record<ContractType, string> = {
+  cremation: '火化服务合同',
+  ceremony: '告别仪式合同',
+  comprehensive: '综合服务合同',
+  'urn-storage': '骨灰存放合同',
+  transport: '接送服务合同',
+  other: '其他服务合同'
+};
+
+export type ContractStatus = 'draft' | 'pending' | 'signed' | 'archived' | 'cancelled';
+
+export const ContractStatusLabel: Record<ContractStatus, string> = {
+  draft: '草稿',
+  pending: '待签署',
+  signed: '已签署',
+  archived: '已归档',
+  cancelled: '已取消'
+};
+
+export interface ContractVariable {
+  key: string;
+  label: string;
+  defaultValue?: string;
+  required: boolean;
+}
+
+export interface ContractTemplate {
+  id: string;
+  name: string;
+  type: ContractType;
+  content: string;
+  variables: ContractVariable[];
+  version: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SignatoryRole = 'customer' | 'company' | 'witness';
+
+export const SignatoryRoleLabel: Record<SignatoryRole, string> = {
+  customer: '客户',
+  company: '公司代表',
+  witness: '见证人'
+};
+
+export interface ContractSignature {
+  id: string;
+  contractId: string;
+  signatoryName: string;
+  signatoryRole: SignatoryRole;
+  signatureData: string;
+  signedAt: string;
+  ipAddress?: string;
+}
+
+export type ContractTimelineAction =
+  | 'created'
+  | 'updated'
+  | 'sent_for_signature'
+  | 'signed'
+  | 'all_signed'
+  | 'archived'
+  | 'cancelled'
+  | 'viewed';
+
+export const ContractTimelineActionLabel: Record<ContractTimelineAction, string> = {
+  created: '合同创建',
+  updated: '合同更新',
+  sent_for_signature: '发送签署',
+  signed: '完成签署',
+  all_signed: '全部签署完成',
+  archived: '合同归档',
+  cancelled: '合同取消',
+  viewed: '合同查看'
+};
+
+export interface ContractTimelineEntry {
+  id: string;
+  contractId: string;
+  action: ContractTimelineAction;
+  description: string;
+  operator: string;
+  timestamp: string;
+}
+
+export interface Contract {
+  id: string;
+  contractNo: string;
+  templateId: string;
+  type: ContractType;
+  title: string;
+  content: string;
+  petId?: string;
+  ownerId?: string;
+  ceremonyId?: string;
+  cremationId?: string;
+  packageId?: string;
+  status: ContractStatus;
+  totalAmount: number;
+  signedAt?: string;
+  archivedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}

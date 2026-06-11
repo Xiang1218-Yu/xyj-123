@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   BarChart3,
   BookOpen,
+  FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/pets", label: "宠物档案", icon: PawPrint },
   { to: "/albums", label: "纪念相册", icon: Images },
   { to: "/packages", label: "套餐管理", icon: Package },
+  { to: "/contracts", label: "电子合同", icon: FileSignature },
   { to: "/ceremonies", label: "告别仪式", icon: HeartHandshake },
   { to: "/cremations", label: "火化管理", icon: Flame },
   { to: "/urns", label: "骨灰存放", icon: Archive },

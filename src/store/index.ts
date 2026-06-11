@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -17,7 +17,11 @@ import {
   mockLeaveRequests,
   mockAttendanceRecords,
   mockPetBreeds,
-  mockBreedArticles
+  mockBreedArticles,
+  mockContractTemplates,
+  mockContracts,
+  mockContractSignatures,
+  mockContractTimelines
 } from '../data/mockData';
 
 interface AppState {
@@ -39,6 +43,11 @@ interface AppState {
   petBreeds: PetBreed[];
   breedArticles: BreedArticle[];
   favoriteBreeds: FavoriteBreed[];
+
+  contractTemplates: ContractTemplate[];
+  contracts: Contract[];
+  contractSignatures: ContractSignature[];
+  contractTimelines: ContractTimelineEntry[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -135,6 +144,33 @@ interface AppState {
 
   toggleFavoriteBreed: (breedId: string) => void;
   isBreedFavorited: (breedId: string) => boolean;
+
+  addContractTemplate: (template: Omit<ContractTemplate, 'id' | 'createdAt' | 'updatedAt'>) => ContractTemplate;
+  updateContractTemplate: (id: string, data: Partial<ContractTemplate>) => void;
+  deleteContractTemplate: (id: string) => void;
+  getContractTemplateById: (id: string) => ContractTemplate | undefined;
+  getActiveTemplatesByType: (type: ContractType) => ContractTemplate[];
+
+  addContract: (contract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>) => Contract;
+  updateContract: (id: string, data: Partial<Contract>) => void;
+  deleteContract: (id: string) => void;
+  getContractById: (id: string) => Contract | undefined;
+  getContractsByPetId: (petId: string) => Contract[];
+  getContractsByOwnerId: (ownerId: string) => Contract[];
+  getContractsByStatus: (status: Contract['status']) => Contract[];
+  generateContractNo: () => string;
+  fillTemplateVariables: (templateContent: string, variables: Record<string, string>) => string;
+  sendContractForSignature: (contractId: string, operator: string) => void;
+
+  addContractSignature: (signature: Omit<ContractSignature, 'id' | 'signedAt'>) => ContractSignature;
+  getSignaturesByContractId: (contractId: string) => ContractSignature[];
+  checkAllSignaturesComplete: (contractId: string) => boolean;
+
+  addContractTimelineEntry: (entry: Omit<ContractTimelineEntry, 'id' | 'timestamp'>) => ContractTimelineEntry;
+  getTimelineByContractId: (contractId: string) => ContractTimelineEntry[];
+
+  autoArchiveContract: (contractId: string, operator?: string) => void;
+  archiveSignedContractsAutomatically: () => void;
 }
 
 const generateId = (prefix: string) =>
@@ -160,6 +196,10 @@ export const useAppStore = create<AppState>()(
       petBreeds: mockPetBreeds,
       breedArticles: mockBreedArticles,
       favoriteBreeds: [],
+      contractTemplates: mockContractTemplates,
+      contracts: mockContracts,
+      contractSignatures: mockContractSignatures,
+      contractTimelines: mockContractTimelines,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -697,7 +737,194 @@ export const useAppStore = create<AppState>()(
           };
         }),
       isBreedFavorited: (breedId) =>
-        get().favoriteBreeds.some((f) => f.breedId === breedId)
+        get().favoriteBreeds.some((f) => f.breedId === breedId),
+
+      addContractTemplate: (template) => {
+        const now = new Date().toISOString();
+        const newTemplate: ContractTemplate = {
+          ...template,
+          id: generateId('tpl'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          contractTemplates: [...state.contractTemplates, newTemplate]
+        }));
+        return newTemplate;
+      },
+      updateContractTemplate: (id, data) =>
+        set((state) => ({
+          contractTemplates: state.contractTemplates.map((t) =>
+            t.id === id ? { ...t, ...data, updatedAt: new Date().toISOString() } : t
+          )
+        })),
+      deleteContractTemplate: (id) =>
+        set((state) => ({
+          contractTemplates: state.contractTemplates.filter((t) => t.id !== id)
+        })),
+      getContractTemplateById: (id) => get().contractTemplates.find((t) => t.id === id),
+      getActiveTemplatesByType: (type) =>
+        get().contractTemplates.filter((t) => t.type === type && t.isActive),
+
+      addContract: (contract) => {
+        const now = new Date().toISOString();
+        const newContract: Contract = {
+          ...contract,
+          id: generateId('contract'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          contracts: [...state.contracts, newContract]
+        }));
+        get().addContractTimelineEntry({
+          contractId: newContract.id,
+          action: 'created',
+          description: `创建${newContract.title}`,
+          operator: '管理员'
+        });
+        return newContract;
+      },
+      updateContract: (id, data) => {
+        const old = get().getContractById(id);
+        set((state) => ({
+          contracts: state.contracts.map((c) =>
+            c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c
+          )
+        }));
+        if (old) {
+          get().addContractTimelineEntry({
+            contractId: id,
+            action: 'updated',
+            description: '更新合同内容',
+            operator: '管理员'
+          });
+        }
+      },
+      deleteContract: (id) =>
+        set((state) => ({
+          contracts: state.contracts.filter((c) => c.id !== id),
+          contractSignatures: state.contractSignatures.filter((s) => s.contractId !== id),
+          contractTimelines: state.contractTimelines.filter((t) => t.contractId !== id)
+        })),
+      getContractById: (id) => get().contracts.find((c) => c.id === id),
+      getContractsByPetId: (petId) => get().contracts.filter((c) => c.petId === petId),
+      getContractsByOwnerId: (ownerId) => get().contracts.filter((c) => c.ownerId === ownerId),
+      getContractsByStatus: (status) => get().contracts.filter((c) => c.status === status),
+      generateContractNo: () => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const count = get().contracts.filter((c) =>
+          c.contractNo.startsWith(`HT${y}${m}${d}`)
+        ).length + 1;
+        return `HT${y}${m}${d}${String(count).padStart(3, '0')}`;
+      },
+      fillTemplateVariables: (templateContent, variables) => {
+        let result = templateContent;
+        Object.entries(variables).forEach(([key, value]) => {
+          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+          result = result.replace(regex, value || '');
+        });
+        return result;
+      },
+      sendContractForSignature: (contractId, operator) => {
+        get().updateContract(contractId, { status: 'pending' });
+        get().addContractTimelineEntry({
+          contractId,
+          action: 'sent_for_signature',
+          description: '发送合同给各方签署',
+          operator
+        });
+      },
+
+      addContractSignature: (signature) => {
+        const now = new Date().toISOString();
+        const newSig: ContractSignature = {
+          ...signature,
+          id: generateId('sig'),
+          signedAt: now
+        };
+        set((state) => ({
+          contractSignatures: [...state.contractSignatures, newSig]
+        }));
+        const roleLabel = signature.signatoryRole === 'customer' ? '客户' :
+          signature.signatoryRole === 'company' ? '公司代表' : '见证人';
+        get().addContractTimelineEntry({
+          contractId: signature.contractId,
+          action: 'signed',
+          description: `${roleLabel}${signature.signatoryName}完成签署`,
+          operator: signature.signatoryName
+        });
+        if (get().checkAllSignaturesComplete(signature.contractId)) {
+          get().updateContract(signature.contractId, {
+            status: 'signed',
+            signedAt: now
+          });
+          get().addContractTimelineEntry({
+            contractId: signature.contractId,
+            action: 'all_signed',
+            description: '合同全部签署完成',
+            operator: '系统'
+          });
+        }
+        return newSig;
+      },
+      getSignaturesByContractId: (contractId) =>
+        get().contractSignatures.filter((s) => s.contractId === contractId),
+      checkAllSignaturesComplete: (contractId) => {
+        const sigs = get().getSignaturesByContractId(contractId);
+        const hasCompany = sigs.some((s) => s.signatoryRole === 'company');
+        const hasCustomer = sigs.some((s) => s.signatoryRole === 'customer');
+        return hasCompany && hasCustomer;
+      },
+
+      addContractTimelineEntry: (entry) => {
+        const newEntry: ContractTimelineEntry = {
+          ...entry,
+          id: generateId('tl'),
+          timestamp: new Date().toISOString()
+        };
+        set((state) => ({
+          contractTimelines: [...state.contractTimelines, newEntry]
+        }));
+        return newEntry;
+      },
+      getTimelineByContractId: (contractId) =>
+        get()
+          .contractTimelines.filter((t) => t.contractId === contractId)
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+
+      autoArchiveContract: (contractId, operator = '系统') => {
+        const contract = get().getContractById(contractId);
+        if (contract && contract.status === 'signed') {
+          const now = new Date().toISOString();
+          set((state) => ({
+            contracts: state.contracts.map((c) =>
+              c.id === contractId ? { ...c, status: 'archived', archivedAt: now, updatedAt: now } : c
+            )
+          }));
+          get().addContractTimelineEntry({
+            contractId,
+            action: 'archived',
+            description: '服务完成，合同自动归档',
+            operator
+          });
+        }
+      },
+      archiveSignedContractsAutomatically: () => {
+        const signed = get().getContractsByStatus('signed');
+        signed.forEach((c) => {
+          if (c.signedAt) {
+            const signedDate = new Date(c.signedAt);
+            const diffDays = (Date.now() - signedDate.getTime()) / (1000 * 60 * 60 * 24);
+            if (diffDays >= 7) {
+              get().autoArchiveContract(c.id, '系统自动归档');
+            }
+          }
+        });
+      }
     }),
     {
       name: 'xyj-123-storage',
@@ -718,7 +945,11 @@ export const useAppStore = create<AppState>()(
         attendanceRecords: state.attendanceRecords,
         petBreeds: state.petBreeds,
         breedArticles: state.breedArticles,
-        favoriteBreeds: state.favoriteBreeds
+        favoriteBreeds: state.favoriteBreeds,
+        contractTemplates: state.contractTemplates,
+        contracts: state.contracts,
+        contractSignatures: state.contractSignatures,
+        contractTimelines: state.contractTimelines
       })
     }
   )

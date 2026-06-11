@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -970,4 +970,666 @@ export const mockBreedArticles: BreedArticle[] = [
     createdAt: '2025-05-22T10:50:00Z',
     updatedAt: '2025-05-22T10:50:00Z'
   }
+];
+
+export const mockContractTemplates: ContractTemplate[] = [
+  {
+    id: 'tpl-001',
+    name: '宠物火化服务合同（标准版）',
+    type: 'cremation',
+    content: `宠物火化服务合同
+
+合同编号：{{contractNo}}
+
+甲方（服务提供方）：永恒宠物纪念服务中心
+地址：北京市朝阳区XX路XX号
+联系电话：400-XXX-XXXX
+
+乙方（客户）：{{ownerName}}
+身份证号：{{ownerIdCard}}
+联系电话：{{ownerPhone}}
+联系地址：{{ownerAddress}}
+
+鉴于乙方委托甲方为其宠物提供火化服务，双方经友好协商，达成如下协议：
+
+第一条 宠物信息
+1.1 宠物姓名：{{petName}}
+1.2 宠物品种：{{petBreed}}
+1.3 宠物年龄：{{petAge}}
+1.4 宠物性别：{{petGender}}
+
+第二条 服务内容
+2.1 服务类型：{{serviceType}}
+2.2 火化方式：独立火化 / 集体火化
+2.3 服务时间：{{serviceDate}}
+2.4 服务地点：{{serviceLocation}}
+
+第三条 费用及支付
+3.1 服务总费用：人民币 {{totalAmount}} 元整
+3.2 支付方式：现金 / 微信 / 支付宝 / 银行转账
+3.3 乙方应在服务开始前支付全部费用
+
+第四条 双方权利义务
+4.1 甲方应按照约定时间、地点和标准提供火化服务
+4.2 甲方应确保火化过程规范、尊重，保障骨灰的完整性
+4.3 乙方应按时支付服务费用，提供真实准确的信息
+4.4 乙方应遵守甲方服务场所的管理规定
+
+第五条 骨灰处理
+5.1 火化完成后，骨灰由：□ 家属领取  □ 骨灰堂寄存  □ 环保花葬
+5.2 骨灰存放期限：{{storagePeriod}}
+5.3 逾期未领取的骨灰，甲方有权按相关规定处理
+
+第六条 违约责任
+6.1 任何一方违反本合同约定，应承担相应的违约责任
+6.2 因不可抗力导致服务无法履行的，双方均不承担违约责任
+
+第七条 争议解决
+本合同在履行过程中发生的争议，由双方协商解决；协商不成的，任何一方可向甲方所在地人民法院提起诉讼。
+
+第八条 其他约定
+8.1 本合同一式两份，甲乙双方各执一份，具有同等法律效力
+8.2 本合同自双方签字（盖章）之日起生效
+
+甲方（盖章）：__________________        乙方（签字）：__________________
+授权代表签字：__________________        签署日期：______年____月____日
+签署日期：______年____月____日`,
+    variables: [
+      { key: 'contractNo', label: '合同编号', required: true },
+      { key: 'ownerName', label: '客户姓名', required: true },
+      { key: 'ownerIdCard', label: '身份证号', required: true },
+      { key: 'ownerPhone', label: '联系电话', required: true },
+      { key: 'ownerAddress', label: '联系地址', required: false },
+      { key: 'petName', label: '宠物姓名', required: true },
+      { key: 'petBreed', label: '宠物品种', required: true },
+      { key: 'petAge', label: '宠物年龄', required: true },
+      { key: 'petGender', label: '宠物性别', required: true },
+      { key: 'serviceType', label: '服务类型', defaultValue: '宠物火化服务', required: true },
+      { key: 'serviceDate', label: '服务时间', required: true },
+      { key: 'serviceLocation', label: '服务地点', required: true },
+      { key: 'totalAmount', label: '服务总费用（元）', required: true },
+      { key: 'storagePeriod', label: '骨灰存放期限', defaultValue: '1年', required: false }
+    ],
+    version: '1.0.0',
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-002',
+    name: '告别仪式服务合同',
+    type: 'ceremony',
+    content: `告别仪式服务合同
+
+合同编号：{{contractNo}}
+
+甲方（服务提供方）：永恒宠物纪念服务中心
+地址：北京市朝阳区XX路XX号
+联系电话：400-XXX-XXXX
+
+乙方（客户）：{{ownerName}}
+身份证号：{{ownerIdCard}}
+联系电话：{{ownerPhone}}
+联系地址：{{ownerAddress}}
+
+鉴于乙方委托甲方为其宠物举办告别仪式服务，双方经友好协商，达成如下协议：
+
+第一条 宠物信息
+1.1 宠物姓名：{{petName}}
+1.2 宠物品种：{{petBreed}}
+1.3 与乙方关系：{{petRelation}}
+
+第二条 仪式详情
+2.1 仪式类型：{{ceremonyType}}
+2.2 仪式时间：{{ceremonyDate}}
+2.3 仪式地点：{{ceremonyLocation}}
+2.4 预计参加人数：{{participantCount}}人
+2.5 仪式主持人：{{hostName}}
+
+第三条 套餐与服务
+3.1 选定套餐：{{packageName}}
+3.2 包含服务项目：
+    - 仪式场地布置
+    - 专业主持人
+    - 鲜花装饰
+    - 纪念照片打印
+    - 视频录制
+    - 其他：{{extraServices}}
+
+第四条 费用及支付
+4.1 服务总费用：人民币 {{totalAmount}} 元整
+4.2 定金：人民币 {{depositAmount}} 元整（已含在总费用中）
+4.3 支付方式：乙方应在签订本合同时支付定金，仪式前3日付清余款
+
+第五条 双方权利义务
+5.1 甲方应按约定提供仪式场地、设备和人员服务
+5.2 甲方应尊重乙方及家属的情感，营造庄重温馨的氛围
+5.3 乙方应按约定时间到达仪式现场，遵守场所管理规定
+5.4 乙方应提前告知特殊需求或宗教习俗要求
+
+第六条 变更与取消
+6.1 乙方如需变更仪式时间或内容，应提前48小时通知甲方
+6.2 乙方在仪式前24小时内取消的，定金不予退还
+6.3 因不可抗力导致仪式无法举行的，双方协商解决
+
+第七条 保密条款
+甲方对仪式过程中获取的乙方个人信息和影像资料负有保密义务，未经乙方同意不得向第三方披露。
+
+第八条 其他约定
+8.1 本合同一式两份，甲乙双方各执一份，具有同等法律效力
+8.2 本合同自双方签字（盖章）之日起生效
+
+甲方（盖章）：__________________        乙方（签字）：__________________
+授权代表签字：__________________        签署日期：______年____月____日
+签署日期：______年____月____日`,
+    variables: [
+      { key: 'contractNo', label: '合同编号', required: true },
+      { key: 'ownerName', label: '客户姓名', required: true },
+      { key: 'ownerIdCard', label: '身份证号', required: true },
+      { key: 'ownerPhone', label: '联系电话', required: true },
+      { key: 'ownerAddress', label: '联系地址', required: false },
+      { key: 'petName', label: '宠物姓名', required: true },
+      { key: 'petBreed', label: '宠物品种', required: true },
+      { key: 'petRelation', label: '与客户关系', defaultValue: '家庭成员', required: true },
+      { key: 'ceremonyType', label: '仪式类型', defaultValue: '标准告别仪式', required: true },
+      { key: 'ceremonyDate', label: '仪式时间', required: true },
+      { key: 'ceremonyLocation', label: '仪式地点', required: true },
+      { key: 'participantCount', label: '参加人数', defaultValue: '10', required: true },
+      { key: 'hostName', label: '主持人', required: false },
+      { key: 'packageName', label: '套餐名称', required: true },
+      { key: 'extraServices', label: '附加服务', required: false },
+      { key: 'totalAmount', label: '服务总费用（元）', required: true },
+      { key: 'depositAmount', label: '定金（元）', defaultValue: '500', required: true }
+    ],
+    version: '1.0.0',
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-003',
+    name: '综合服务合同（火化+告别+骨灰寄存）',
+    type: 'comprehensive',
+    content: `宠物殡葬综合服务合同
+
+合同编号：{{contractNo}}
+
+甲方（服务提供方）：永恒宠物纪念服务中心
+地址：北京市朝阳区XX路XX号
+联系电话：400-XXX-XXXX
+
+乙方（客户）：{{ownerName}}
+身份证号：{{ownerIdCard}}
+联系电话：{{ownerPhone}}
+
+兹因乙方委托甲方为其已故宠物提供殡葬综合服务，经双方友好协商，达成如下协议：
+
+第一条 宠物基本信息
+1.1 宠物姓名：{{petName}}
+1.2 宠物品种：{{petBreed}}
+1.3 出生日期：{{petBirthDate}}
+1.4 死亡日期：{{petDeathDate}}
+1.5 死亡原因：{{petDeathReason}}
+
+第二条 服务项目及内容
+2.1 接送服务：□ 需要  □ 不需要；如需：接送地址{{pickupAddress}}
+2.2 告别仪式：
+    - 时间：{{ceremonyDate}}
+    - 地点：{{ceremonyLocation}}
+    - 类型：{{ceremonyType}}
+    - 参加人数：{{participantCount}}人
+2.3 火化服务：
+    - 方式：□ 独立火化  □ 集体火化
+    - 时间：{{cremationDate}}
+2.4 骨灰处理：
+    - □ 家属自行领取
+    - □ 骨灰寄存：期限{{storagePeriod}}，位置{{storageLocation}}
+    - □ 其他方式：{{ashDisposal}}
+
+第三条 费用明细
+3.1 接送服务费：{{transportFee}}元
+3.2 告别仪式费：{{ceremonyFee}}元
+3.3 火化服务费：{{cremationFee}}元
+3.4 骨灰寄存费：{{storageFee}}元
+3.5 其他费用：{{otherFee}}元（说明：{{otherFeeDesc}}）
+3.6 费用合计：人民币 {{totalAmount}} 元整
+
+第四条 付款方式
+4.1 本合同签订时，乙方支付总费用的30%作为定金，即 {{depositAmount}}元
+4.2 服务完成当日，乙方一次性支付余款 {{balanceAmount}}元
+
+第五条 服务标准
+5.1 甲方承诺所有服务均由专业人员操作，流程规范
+5.2 火化过程全程可（视频）监督，确保骨灰纯净完整
+5.3 仪式服务尊重客户宗教信仰和个人习俗
+
+第六条 特殊约定
+{{specialTerms}}
+
+第七条 违约责任
+7.1 甲方未能按约定提供服务的，应退还对应项目费用
+7.2 乙方逾期付款的，按日支付应付金额0.5%的违约金
+7.3 因不可抗力导致部分或全部服务无法履行的，双方协商退款或改期
+
+第八条 争议解决
+本合同履行中发生争议，双方友好协商解决；协商不成的，提交甲方所在地法院诉讼解决。
+
+本合同一式两份，甲乙双方各执一份，签字盖章后生效。
+
+甲方（盖章）：__________________        乙方（签字）：__________________
+授权代表：______________________        日期：______年____月____日
+日期：______年____月____日`,
+    variables: [
+      { key: 'contractNo', label: '合同编号', required: true },
+      { key: 'ownerName', label: '客户姓名', required: true },
+      { key: 'ownerIdCard', label: '身份证号', required: true },
+      { key: 'ownerPhone', label: '联系电话', required: true },
+      { key: 'petName', label: '宠物姓名', required: true },
+      { key: 'petBreed', label: '宠物品种', required: true },
+      { key: 'petBirthDate', label: '出生日期', required: false },
+      { key: 'petDeathDate', label: '死亡日期', required: true },
+      { key: 'petDeathReason', label: '死亡原因', required: false },
+      { key: 'pickupAddress', label: '接送地址', required: false },
+      { key: 'ceremonyDate', label: '仪式时间', required: true },
+      { key: 'ceremonyLocation', label: '仪式地点', required: true },
+      { key: 'ceremonyType', label: '仪式类型', required: true },
+      { key: 'participantCount', label: '参加人数', defaultValue: '10', required: true },
+      { key: 'cremationDate', label: '火化时间', required: true },
+      { key: 'storagePeriod', label: '寄存期限', defaultValue: '3年', required: false },
+      { key: 'storageLocation', label: '寄存位置', required: false },
+      { key: 'ashDisposal', label: '骨灰其他处理方式', required: false },
+      { key: 'transportFee', label: '接送服务费（元）', defaultValue: '0', required: true },
+      { key: 'ceremonyFee', label: '告别仪式费（元）', required: true },
+      { key: 'cremationFee', label: '火化服务费（元）', required: true },
+      { key: 'storageFee', label: '骨灰寄存费（元）', defaultValue: '0', required: true },
+      { key: 'otherFee', label: '其他费用（元）', defaultValue: '0', required: true },
+      { key: 'otherFeeDesc', label: '其他费用说明', required: false },
+      { key: 'totalAmount', label: '费用合计（元）', required: true },
+      { key: 'depositAmount', label: '定金（元）', required: true },
+      { key: 'balanceAmount', label: '余款（元）', required: true },
+      { key: 'specialTerms', label: '特殊约定', defaultValue: '无', required: false }
+    ],
+    version: '1.0.0',
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-004',
+    name: '骨灰存放服务合同',
+    type: 'urn-storage',
+    content: `骨灰存放服务合同
+
+合同编号：{{contractNo}}
+
+甲方（存放方）：永恒宠物纪念服务中心
+地址：北京市朝阳区XX路XX号
+联系电话：400-XXX-XXXX
+
+乙方（寄存方）：{{ownerName}}
+身份证号：{{ownerIdCard}}
+联系电话：{{ownerPhone}}
+联系地址：{{ownerAddress}}
+
+根据《中华人民共和国民法典》及相关法律法规，甲乙双方就宠物骨灰存放事宜，经友好协商，达成如下协议：
+
+第一条 存放物品
+1.1 物品名称：宠物骨灰（骨灰盒）
+1.2 所属宠物：{{petName}}（{{petBreed}}）
+1.3 骨灰盒规格：{{urnSpec}}
+1.4 随存物品：{{extraItems}}
+
+第二条 存放位置与期限
+2.1 存放区域：{{storageArea}}
+2.2 存放架位：第{{shelfNo}}层 第{{positionNo}}号
+2.3 存放期限：自{{startDate}}起至{{endDate}}止，共计{{periodYears}}年
+2.4 到期处理方式：□ 续费续存  □ 家属领取  □ 环保安葬
+
+第三条 费用标准
+3.1 年存放费：{{annualFee}}元/年
+3.2 存放期限合计费用：人民币 {{totalAmount}} 元整
+3.3 支付方式：一次性支付 / 按年支付
+3.4 续费提醒：甲方应在到期前30天通知乙方续费
+
+第四条 双方权利义务
+4.1 甲方权利义务：
+    （1）提供安全、整洁、肃穆的存放环境
+    （2）配备专人管理，定期清洁维护
+    （3）建立存取登记制度，保障物品安全
+    （4）按约定提供祭扫服务
+4.2 乙方权利义务：
+    （1）按时足额支付存放费用
+    （2）凭有效证件办理存取、祭扫手续
+    （3）遵守甲方骨灰堂管理规定
+    （4）联系方式变更时及时通知甲方
+
+第五条 安全与责任
+5.1 甲方对存放物品负有妥善保管义务
+5.2 因不可抗力（地震、火灾等）造成损失的，甲方不承担赔偿责任
+5.3 乙方逾期未续费超过6个月的，甲方有权按约定方式处理骨灰
+
+第六条 祭扫规定
+6.1 祭扫时间：工作日 9:00-17:00，节假日请提前预约
+6.2 祭扫时请遵守秩序，不得喧哗、焚烧纸钱
+6.3 每次祭扫人数不超过{{visitorLimit}}人
+
+第七条 合同终止
+7.1 存放期满，乙方办理领取手续后合同终止
+7.2 存放期满乙方续费的，合同续期
+7.3 一方严重违约，另一方有权解除合同
+
+第八条 争议解决
+本合同履行中发生争议，双方协商解决；协商不成的，可向甲方所在地人民法院起诉。
+
+本合同一式两份，甲乙双方各执一份，签字盖章后生效。
+
+甲方（盖章）：__________________        乙方（签字）：__________________
+经办人签字：__________________          签署日期：______年____月____日
+签署日期：______年____月____日`,
+    variables: [
+      { key: 'contractNo', label: '合同编号', required: true },
+      { key: 'ownerName', label: '寄存人姓名', required: true },
+      { key: 'ownerIdCard', label: '身份证号', required: true },
+      { key: 'ownerPhone', label: '联系电话', required: true },
+      { key: 'ownerAddress', label: '联系地址', required: false },
+      { key: 'petName', label: '宠物姓名', required: true },
+      { key: 'petBreed', label: '宠物品种', required: true },
+      { key: 'urnSpec', label: '骨灰盒规格', required: true },
+      { key: 'extraItems', label: '随存物品', defaultValue: '无', required: false },
+      { key: 'storageArea', label: '存放区域', required: true },
+      { key: 'shelfNo', label: '架层号', required: true },
+      { key: 'positionNo', label: '位置号', required: true },
+      { key: 'startDate', label: '起始日期', required: true },
+      { key: 'endDate', label: '到期日期', required: true },
+      { key: 'periodYears', label: '存放年限', required: true },
+      { key: 'annualFee', label: '年费（元）', required: true },
+      { key: 'totalAmount', label: '合计费用（元）', required: true },
+      { key: 'visitorLimit', label: '祭扫人数上限', defaultValue: '6', required: false }
+    ],
+    version: '1.0.0',
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  {
+    id: 'tpl-005',
+    name: '宠物接送服务合同',
+    type: 'transport',
+    content: `宠物遗体接送服务合同
+
+合同编号：{{contractNo}}
+
+甲方（服务方）：永恒宠物纪念服务中心
+联系电话：400-XXX-XXXX
+
+乙方（委托方）：{{ownerName}}
+联系电话：{{ownerPhone}}
+身份证号：{{ownerIdCard}}
+
+乙方因宠物身故，委托甲方提供宠物遗体接送服务，经双方协商一致，达成如下协议：
+
+第一条 服务内容
+1.1 接送宠物：{{petName}}（{{petBreed}}，体重约{{petWeight}}kg）
+1.2 接运地点：{{pickupAddress}}
+1.3 送达地点：{{deliveryAddress}}
+1.4 预定接送时间：{{pickupDateTime}}
+
+第二条 服务费用
+2.1 基础接送费：{{baseFee}}元
+2.2 里程附加费（超出{{baseKm}}公里）：{{kmFee}}元（{{extraKm}}公里 × {{perKmRate}}元/公里）
+2.3 夜间附加费（22:00-06:00）：{{nightFee}}元
+2.4 其他费用：{{otherFee}}元（说明：{{otherFeeDesc}}）
+2.5 费用合计：人民币 {{totalAmount}} 元整
+
+第三条 支付方式
+3.1 □ 预约时一次性支付
+3.2 □ 服务完成后现场支付（现金/扫码）
+
+第四条 双方权利义务
+4.1 甲方：
+    （1）安排专业车辆和人员，按时到达指定地点
+    （2）提供专用遗体袋/箱，尊重逝者，文明搬运
+    （3）保证运输过程平稳，避免损坏
+    （4）司机联系方式：{{driverPhone}}，车牌号：{{carPlate}}
+4.2 乙方：
+    （1）提供准确的接送地址和联系方式
+    （2）按时到达接送地点等候
+    （3）如实告知宠物状况（是否有传染病等特殊情况）
+    （4）按约定支付服务费用
+
+第五条 特殊约定
+5.1 如遇交通管制、恶劣天气等不可抗力导致延误，双方协商调整时间
+5.2 乙方取消服务：
+    - 提前4小时以上取消：全额退款
+    - 提前2-4小时取消：退还50%
+    - 不足2小时取消：不予退款
+
+第六条 争议解决
+本合同履行中发生争议，双方友好协商解决；协商不成的，提交甲方所在地消费者协会调解或向法院起诉。
+
+本合同一式两份，甲乙双方各执一份，签字后生效。
+
+甲方（签字/盖章）：_______________      乙方（签字）：__________________
+签署日期：______年____月____日            签署日期：______年____月____日`,
+    variables: [
+      { key: 'contractNo', label: '合同编号', required: true },
+      { key: 'ownerName', label: '委托人姓名', required: true },
+      { key: 'ownerPhone', label: '联系电话', required: true },
+      { key: 'ownerIdCard', label: '身份证号', required: true },
+      { key: 'petName', label: '宠物姓名', required: true },
+      { key: 'petBreed', label: '宠物品种', required: true },
+      { key: 'petWeight', label: '宠物体重（kg）', required: true },
+      { key: 'pickupAddress', label: '接运地址', required: true },
+      { key: 'deliveryAddress', label: '送达地址', required: true },
+      { key: 'pickupDateTime', label: '接送时间', required: true },
+      { key: 'baseFee', label: '基础接送费（元）', defaultValue: '300', required: true },
+      { key: 'baseKm', label: '基础里程（公里）', defaultValue: '20', required: false },
+      { key: 'kmFee', label: '里程附加费（元）', defaultValue: '0', required: false },
+      { key: 'extraKm', label: '超出里程（公里）', defaultValue: '0', required: false },
+      { key: 'perKmRate', label: '每公里单价（元）', defaultValue: '10', required: false },
+      { key: 'nightFee', label: '夜间附加费（元）', defaultValue: '0', required: false },
+      { key: 'otherFee', label: '其他费用（元）', defaultValue: '0', required: false },
+      { key: 'otherFeeDesc', label: '其他费用说明', required: false },
+      { key: 'totalAmount', label: '费用合计（元）', required: true },
+      { key: 'driverPhone', label: '司机电话', required: false },
+      { key: 'carPlate', label: '车牌号', required: false }
+    ],
+    version: '1.0.0',
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  }
+];
+
+export const mockContracts: Contract[] = [
+  {
+    id: 'contract-001',
+    contractNo: 'HT20250318001',
+    templateId: 'tpl-001',
+    type: 'cremation',
+    title: '豆豆火化服务合同',
+    content: '',
+    petId: 'pet-001',
+    ownerId: 'owner-001',
+    cremationId: 'cremation-001',
+    status: 'archived',
+    totalAmount: 2600,
+    signedAt: '2025-03-16T09:30:00Z',
+    archivedAt: '2025-03-20T18:00:00Z',
+    createdAt: '2025-03-16T09:00:00Z',
+    updatedAt: '2025-03-20T18:00:00Z'
+  },
+  {
+    id: 'contract-002',
+    contractNo: 'HT20250318002',
+    templateId: 'tpl-002',
+    type: 'ceremony',
+    title: '豆豆告别仪式服务合同',
+    content: '',
+    petId: 'pet-001',
+    ownerId: 'owner-001',
+    ceremonyId: 'ceremony-001',
+    status: 'archived',
+    totalAmount: 4999,
+    signedAt: '2025-03-16T10:00:00Z',
+    archivedAt: '2025-03-20T18:00:00Z',
+    createdAt: '2025-03-16T09:30:00Z',
+    updatedAt: '2025-03-20T18:00:00Z'
+  },
+  {
+    id: 'contract-003',
+    contractNo: 'HT20250113001',
+    templateId: 'tpl-003',
+    type: 'comprehensive',
+    title: '旺财综合服务合同',
+    content: '',
+    petId: 'pet-003',
+    ownerId: 'owner-001',
+    ceremonyId: 'ceremony-002',
+    cremationId: 'cremation-002',
+    packageId: 'package-002',
+    status: 'archived',
+    totalAmount: 5999,
+    signedAt: '2025-01-11T14:00:00Z',
+    archivedAt: '2025-01-15T18:00:00Z',
+    createdAt: '2025-01-11T10:00:00Z',
+    updatedAt: '2025-01-15T18:00:00Z'
+  },
+  {
+    id: 'contract-004',
+    contractNo: 'HT20250423001',
+    templateId: 'tpl-001',
+    type: 'cremation',
+    title: '咪咪火化服务合同',
+    content: '',
+    petId: 'pet-002',
+    ownerId: 'owner-002',
+    cremationId: 'cremation-003',
+    status: 'signed',
+    totalAmount: 2200,
+    signedAt: '2025-04-22T11:30:00Z',
+    createdAt: '2025-04-22T10:00:00Z',
+    updatedAt: '2025-04-22T11:30:00Z'
+  },
+  {
+    id: 'contract-005',
+    contractNo: 'HT20250423002',
+    templateId: 'tpl-004',
+    type: 'urn-storage',
+    title: '咪咪骨灰存放合同（3年）',
+    content: '',
+    petId: 'pet-002',
+    ownerId: 'owner-002',
+    status: 'pending',
+    totalAmount: 1095,
+    createdAt: '2025-04-23T09:00:00Z',
+    updatedAt: '2025-04-23T09:00:00Z'
+  },
+  {
+    id: 'contract-006',
+    contractNo: 'HT20250506001',
+    templateId: 'tpl-003',
+    type: 'comprehensive',
+    title: '雪球综合服务合同',
+    content: '',
+    petId: 'pet-004',
+    ownerId: 'owner-003',
+    status: 'draft',
+    totalAmount: 0,
+    createdAt: '2025-05-06T14:20:00Z',
+    updatedAt: '2025-05-06T14:20:00Z'
+  }
+];
+
+export const mockContractSignatures: ContractSignature[] = [
+  {
+    id: 'sig-001',
+    contractId: 'contract-001',
+    signatoryName: '永恒宠物纪念服务中心',
+    signatoryRole: 'company',
+    signatureData: 'data:image/png;base64,company-stamp-placeholder',
+    signedAt: '2025-03-16T09:20:00Z',
+    ipAddress: '192.168.1.1'
+  },
+  {
+    id: 'sig-002',
+    contractId: 'contract-001',
+    signatoryName: '张明华',
+    signatoryRole: 'customer',
+    signatureData: 'data:image/png;base64,customer-signature-placeholder',
+    signedAt: '2025-03-16T09:30:00Z',
+    ipAddress: '192.168.1.100'
+  },
+  {
+    id: 'sig-003',
+    contractId: 'contract-002',
+    signatoryName: '永恒宠物纪念服务中心',
+    signatoryRole: 'company',
+    signatureData: 'data:image/png;base64,company-stamp-placeholder',
+    signedAt: '2025-03-16T09:50:00Z'
+  },
+  {
+    id: 'sig-004',
+    contractId: 'contract-002',
+    signatoryName: '张明华',
+    signatoryRole: 'customer',
+    signatureData: 'data:image/png;base64,customer-signature-placeholder',
+    signedAt: '2025-03-16T10:00:00Z'
+  },
+  {
+    id: 'sig-005',
+    contractId: 'contract-003',
+    signatoryName: '永恒宠物纪念服务中心',
+    signatoryRole: 'company',
+    signatureData: 'data:image/png;base64,company-stamp-placeholder',
+    signedAt: '2025-01-11T13:50:00Z'
+  },
+  {
+    id: 'sig-006',
+    contractId: 'contract-003',
+    signatoryName: '张明华',
+    signatoryRole: 'customer',
+    signatureData: 'data:image/png;base64,customer-signature-placeholder',
+    signedAt: '2025-01-11T14:00:00Z'
+  },
+  {
+    id: 'sig-007',
+    contractId: 'contract-004',
+    signatoryName: '永恒宠物纪念服务中心',
+    signatoryRole: 'company',
+    signatureData: 'data:image/png;base64,company-stamp-placeholder',
+    signedAt: '2025-04-22T11:20:00Z'
+  },
+  {
+    id: 'sig-008',
+    contractId: 'contract-004',
+    signatoryName: '李小红',
+    signatoryRole: 'customer',
+    signatureData: 'data:image/png;base64,customer-signature-placeholder',
+    signedAt: '2025-04-22T11:30:00Z'
+  }
+];
+
+export const mockContractTimelines: ContractTimelineEntry[] = [
+  { id: 'tl-001', contractId: 'contract-001', action: 'created', description: '创建火化服务合同', operator: '赵雅琴', timestamp: '2025-03-16T09:00:00Z' },
+  { id: 'tl-002', contractId: 'contract-001', action: 'updated', description: '填写合同服务内容与费用明细', operator: '赵雅琴', timestamp: '2025-03-16T09:10:00Z' },
+  { id: 'tl-003', contractId: 'contract-001', action: 'sent_for_signature', description: '发送合同给客户签署', operator: '赵雅琴', timestamp: '2025-03-16T09:15:00Z' },
+  { id: 'tl-004', contractId: 'contract-001', action: 'signed', description: '公司方完成签署', operator: '孙丽华', timestamp: '2025-03-16T09:20:00Z' },
+  { id: 'tl-005', contractId: 'contract-001', action: 'signed', description: '客户张明华完成签署', operator: '张明华', timestamp: '2025-03-16T09:30:00Z' },
+  { id: 'tl-006', contractId: 'contract-001', action: 'all_signed', description: '合同全部签署完成', operator: '系统', timestamp: '2025-03-16T09:30:05Z' },
+  { id: 'tl-007', contractId: 'contract-001', action: 'viewed', description: '查看合同详情', operator: '张师傅', timestamp: '2025-03-18T08:30:00Z' },
+  { id: 'tl-008', contractId: 'contract-001', action: 'archived', description: '火化服务完成，合同自动归档', operator: '系统', timestamp: '2025-03-20T18:00:00Z' },
+  { id: 'tl-009', contractId: 'contract-003', action: 'created', description: '创建综合服务合同', operator: '赵雅琴', timestamp: '2025-01-11T10:00:00Z' },
+  { id: 'tl-010', contractId: 'contract-003', action: 'sent_for_signature', description: '发送合同给客户签署', operator: '赵雅琴', timestamp: '2025-01-11T13:00:00Z' },
+  { id: 'tl-011', contractId: 'contract-003', action: 'signed', description: '公司方完成签署', operator: '孙丽华', timestamp: '2025-01-11T13:50:00Z' },
+  { id: 'tl-012', contractId: 'contract-003', action: 'signed', description: '客户张明华完成签署', operator: '张明华', timestamp: '2025-01-11T14:00:00Z' },
+  { id: 'tl-013', contractId: 'contract-003', action: 'all_signed', description: '合同全部签署完成', operator: '系统', timestamp: '2025-01-11T14:00:05Z' },
+  { id: 'tl-014', contractId: 'contract-003', action: 'archived', description: '全部服务完成，合同自动归档', operator: '系统', timestamp: '2025-01-15T18:00:00Z' },
+  { id: 'tl-015', contractId: 'contract-004', action: 'created', description: '创建火化服务合同', operator: '赵雅琴', timestamp: '2025-04-22T10:00:00Z' },
+  { id: 'tl-016', contractId: 'contract-004', action: 'sent_for_signature', description: '发送合同给客户签署', operator: '赵雅琴', timestamp: '2025-04-22T11:00:00Z' },
+  { id: 'tl-017', contractId: 'contract-004', action: 'signed', description: '公司方完成签署', operator: '孙丽华', timestamp: '2025-04-22T11:20:00Z' },
+  { id: 'tl-018', contractId: 'contract-004', action: 'signed', description: '客户李小红完成签署', operator: '李小红', timestamp: '2025-04-22T11:30:00Z' },
+  { id: 'tl-019', contractId: 'contract-004', action: 'all_signed', description: '合同全部签署完成', operator: '系统', timestamp: '2025-04-22T11:30:05Z' },
+  { id: 'tl-020', contractId: 'contract-005', action: 'created', description: '创建骨灰存放合同', operator: '陈志远', timestamp: '2025-04-23T09:00:00Z' },
+  { id: 'tl-021', contractId: 'contract-006', action: 'created', description: '创建综合服务合同（草稿）', operator: '赵雅琴', timestamp: '2025-05-06T14:20:00Z' }
 ];
