@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Clock,
   CheckCircle2,
@@ -9,7 +9,8 @@ import {
   User,
   CalendarDays,
   FileText,
-  Filter
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
@@ -53,10 +54,26 @@ const initialForm: NewLeaveForm = {
   reason: ''
 };
 
+function getDateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const d = String(current.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
 export default function LeaveApproval() {
   const {
     employees,
     leaveRequests,
+    shiftSchedules,
     addLeaveRequest,
     approveLeaveRequest,
     rejectLeaveRequest
@@ -65,6 +82,7 @@ export default function LeaveApproval() {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<NewLeaveForm>(initialForm);
+  const [error, setError] = useState<string | null>(null);
 
   const pendingCount = leaveRequests.filter((r) => r.status === 'pending').length;
   const approvedCount = leaveRequests.filter((r) => r.status === 'approved').length;
@@ -73,6 +91,28 @@ export default function LeaveApproval() {
   const filteredRequests = leaveRequests
     .filter((r) => activeTab === 'all' || r.status === activeTab)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const conflictInfo = useMemo(() => {
+    if (!form.employeeId || !form.startDate || !form.endDate) return null;
+    if (form.startDate > form.endDate) return { hasConflict: false, messages: [] };
+
+    const dates = getDateRange(form.startDate, form.endDate);
+    const conflictDates: string[] = [];
+
+    for (const date of dates) {
+      const hasWorkShift = shiftSchedules.some(
+        (s) => s.employeeId === form.employeeId && s.date === date && s.shiftType !== 'rest'
+      );
+      if (hasWorkShift) {
+        conflictDates.push(date);
+      }
+    }
+
+    return {
+      hasConflict: conflictDates.length > 0,
+      messages: conflictDates
+    };
+  }, [form.employeeId, form.startDate, form.endDate, shiftSchedules]);
 
   const getEmployeeName = (id: string) =>
     employees.find((e) => e.id === id)?.name || '未知员工';
@@ -98,6 +138,21 @@ export default function LeaveApproval() {
   };
 
   const handleApprove = (id: string) => {
+    const request = leaveRequests.find((r) => r.id === id);
+    if (!request) return;
+
+    const dates = getDateRange(request.startDate, request.endDate);
+    for (const date of dates) {
+      const hasShift = shiftSchedules.some(
+        (s) => s.employeeId === request.employeeId && s.date === date
+      );
+      if (hasShift) {
+        setError('该请假时段内已有排班，请先处理排班冲突后再审批');
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+    }
+
     approveLeaveRequest(id, 'emp-006');
   };
 
@@ -106,7 +161,17 @@ export default function LeaveApproval() {
   };
 
   const handleSubmit = () => {
+    setError(null);
     if (!form.employeeId || !form.startDate || !form.endDate || !form.reason.trim()) return;
+    if (form.startDate > form.endDate) {
+      setError('结束日期不能早于开始日期');
+      return;
+    }
+
+    if (conflictInfo?.hasConflict) {
+      setError(`请先处理排班冲突：${conflictInfo.messages.join('、')} 已有排班`);
+      return;
+    }
 
     addLeaveRequest({
       employeeId: form.employeeId,
@@ -124,13 +189,14 @@ export default function LeaveApproval() {
   const closeModal = () => {
     setForm(initialForm);
     setShowModal(false);
+    setError(null);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="请假审批"
-        description="管理员工请假申请与审批"
+        description="管理员工请假申请与审批，自动检测与排班的冲突"
         actions={
           <button onClick={() => setShowModal(true)} className="btn-primary">
             <Plus className="w-5 h-5 mr-1.5" />
@@ -138,6 +204,13 @@ export default function LeaveApproval() {
           </button>
         }
       />
+
+      {error && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card">
@@ -314,8 +387,8 @@ export default function LeaveApproval() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in">
-            <div className="flex items-center justify-between p-6 border-b border-primary-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-primary-100 flex-shrink-0">
               <h2 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
                 <Plus className="w-5 h-5 text-amber-500" />
                 新增请假申请
@@ -328,7 +401,25 @@ export default function LeaveApproval() {
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              {error && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+              {conflictInfo?.hasConflict && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-amber-700 font-medium">检测到排班冲突</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      {conflictInfo.messages.join('、')} 已有排班，请先处理排班冲突
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="label-text">员工 *</label>
                 <select
@@ -395,13 +486,13 @@ export default function LeaveApproval() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-6 border-t border-primary-100">
+            <div className="flex justify-end gap-3 p-6 border-t border-primary-100 flex-shrink-0">
               <button onClick={closeModal} className="btn-secondary">
                 取消
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.employeeId || !form.startDate || !form.endDate || !form.reason.trim()}
+                disabled={!form.employeeId || !form.startDate || !form.endDate || !form.reason.trim() || conflictInfo?.hasConflict}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 确认提交

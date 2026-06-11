@@ -108,8 +108,12 @@ interface AppState {
 
   addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => AttendanceRecord;
   updateAttendanceRecord: (id: string, data: Partial<AttendanceRecord>) => void;
+  deleteAttendanceRecord: (id: string) => void;
   getAttendanceByEmployeeId: (employeeId: string) => AttendanceRecord[];
   getAttendanceByDate: (date: string) => AttendanceRecord[];
+  getAttendanceByEmployeeAndDate: (employeeId: string, date: string) => AttendanceRecord | undefined;
+  hasLeaveConflict: (employeeId: string, date: string) => boolean;
+  syncAttendanceFromShifts: () => void;
 }
 
 const generateId = (prefix: string) =>
@@ -383,34 +387,125 @@ export const useAppStore = create<AppState>()(
       getEmployeeById: (id) => get().employees.find((e) => e.id === id),
 
       addShiftSchedule: (schedule) => {
+        if (schedule.shiftType !== 'rest' && get().hasLeaveConflict(schedule.employeeId, schedule.date)) {
+          throw new Error('该日期员工已有请假审批，无法安排非休息班次');
+        }
         const newSchedule = { ...schedule, id: generateId('shift') };
-        set((state) => ({
-          shiftSchedules: [...state.shiftSchedules, newSchedule]
-        }));
+        set((state) => {
+          let newAttendanceRecords = state.attendanceRecords;
+          if (schedule.shiftType !== 'rest') {
+            const existing = state.attendanceRecords.find(
+              (a) => a.employeeId === schedule.employeeId && a.date === schedule.date
+            );
+            if (!existing) {
+              const newAttendance: AttendanceRecord = {
+                id: generateId('att'),
+                employeeId: schedule.employeeId,
+                date: schedule.date,
+                shiftType: schedule.shiftType,
+                status: 'normal'
+              };
+              newAttendanceRecords = [...state.attendanceRecords, newAttendance];
+            }
+          }
+          return {
+            shiftSchedules: [...state.shiftSchedules, newSchedule],
+            attendanceRecords: newAttendanceRecords
+          };
+        });
         return newSchedule;
       },
-      updateShiftSchedule: (id, data) =>
-        set((state) => ({
-          shiftSchedules: state.shiftSchedules.map((s) =>
+      updateShiftSchedule: (id, data) => {
+        const existing = get().shiftSchedules.find((s) => s.id === id);
+        if (!existing) return;
+        const newShiftType = data.shiftType ?? existing.shiftType;
+        const targetDate = data.date ?? existing.date;
+        const targetEmployeeId = data.employeeId ?? existing.employeeId;
+        if (newShiftType !== 'rest' && get().hasLeaveConflict(targetEmployeeId, targetDate)) {
+          throw new Error('该日期员工已有请假审批，无法安排非休息班次');
+        }
+        set((state) => {
+          const updatedSchedules = state.shiftSchedules.map((s) =>
             s.id === id ? { ...s, ...data } : s
-          )
-        })),
-      deleteShiftSchedule: (id) =>
+          );
+          let updatedAttendance = state.attendanceRecords;
+          if (newShiftType === 'rest') {
+            updatedAttendance = updatedAttendance.filter(
+              (a) => !(a.employeeId === targetEmployeeId && a.date === targetDate)
+            );
+          } else {
+            const existingAttendance = updatedAttendance.find(
+              (a) => a.employeeId === targetEmployeeId && a.date === targetDate
+            );
+            if (existingAttendance) {
+              updatedAttendance = updatedAttendance.map((a) =>
+                a.id === existingAttendance.id ? { ...a, shiftType: newShiftType } : a
+              );
+            } else {
+              const newAttendance: AttendanceRecord = {
+                id: generateId('att'),
+                employeeId: targetEmployeeId,
+                date: targetDate,
+                shiftType: newShiftType,
+                status: 'normal'
+              };
+              updatedAttendance = [...updatedAttendance, newAttendance];
+            }
+          }
+          return {
+            shiftSchedules: updatedSchedules,
+            attendanceRecords: updatedAttendance
+          };
+        });
+      },
+      deleteShiftSchedule: (id) => {
+        const schedule = get().shiftSchedules.find((s) => s.id === id);
         set((state) => ({
-          shiftSchedules: state.shiftSchedules.filter((s) => s.id !== id)
-        })),
+          shiftSchedules: state.shiftSchedules.filter((s) => s.id !== id),
+          attendanceRecords: schedule && schedule.shiftType !== 'rest'
+            ? state.attendanceRecords.filter(
+                (a) => !(a.employeeId === schedule.employeeId && a.date === schedule.date)
+              )
+            : state.attendanceRecords
+        }));
+      },
       getShiftsByEmployeeId: (employeeId) =>
         get().shiftSchedules.filter((s) => s.employeeId === employeeId),
       getShiftsByDate: (date) =>
         get().shiftSchedules.filter((s) => s.date === date),
       batchSetShifts: (schedules) => {
+        const state = get();
+        for (const s of schedules) {
+          if (s.shiftType !== 'rest' && state.hasLeaveConflict(s.employeeId, s.date)) {
+            throw new Error(`员工在 ${s.date} 已有请假审批，无法安排非休息班次`);
+          }
+        }
         const newSchedules = schedules.map((s) => ({
           ...s,
           id: generateId('shift')
         }));
-        set((state) => ({
-          shiftSchedules: [...state.shiftSchedules, ...newSchedules]
-        }));
+        set((state) => {
+          const newAttendance = [...state.attendanceRecords];
+          for (const s of newSchedules) {
+            if (s.shiftType === 'rest') continue;
+            const existing = newAttendance.find(
+              (a) => a.employeeId === s.employeeId && a.date === s.date
+            );
+            if (!existing) {
+              newAttendance.push({
+                id: generateId('att'),
+                employeeId: s.employeeId,
+                date: s.date,
+                shiftType: s.shiftType,
+                status: 'normal'
+              });
+            }
+          }
+          return {
+            shiftSchedules: [...state.shiftSchedules, ...newSchedules],
+            attendanceRecords: newAttendance
+          };
+        });
       },
 
       addLeaveRequest: (request) => {
@@ -462,10 +557,47 @@ export const useAppStore = create<AppState>()(
             a.id === id ? { ...a, ...data } : a
           )
         })),
+      deleteAttendanceRecord: (id) =>
+        set((state) => ({
+          attendanceRecords: state.attendanceRecords.filter((a) => a.id !== id)
+        })),
       getAttendanceByEmployeeId: (employeeId) =>
         get().attendanceRecords.filter((a) => a.employeeId === employeeId),
       getAttendanceByDate: (date) =>
-        get().attendanceRecords.filter((a) => a.date === date)
+        get().attendanceRecords.filter((a) => a.date === date),
+      getAttendanceByEmployeeAndDate: (employeeId, date) =>
+        get().attendanceRecords.find((a) => a.employeeId === employeeId && a.date === date),
+      hasLeaveConflict: (employeeId, date) => {
+        const state = get();
+        return state.leaveRequests.some((l) => {
+          if (l.employeeId !== employeeId || l.status !== 'approved') return false;
+          return date >= l.startDate && date <= l.endDate;
+        });
+      },
+      syncAttendanceFromShifts: () => {
+        const state = get();
+        const recordsToAdd: AttendanceRecord[] = [];
+        for (const shift of state.shiftSchedules) {
+          if (shift.shiftType === 'rest') continue;
+          const existing = state.attendanceRecords.find(
+            (a) => a.employeeId === shift.employeeId && a.date === shift.date
+          );
+          if (!existing) {
+            recordsToAdd.push({
+              id: generateId('att'),
+              employeeId: shift.employeeId,
+              date: shift.date,
+              shiftType: shift.shiftType,
+              status: 'normal'
+            });
+          }
+        }
+        if (recordsToAdd.length > 0) {
+          set((state) => ({
+            attendanceRecords: [...state.attendanceRecords, ...recordsToAdd]
+          }));
+        }
+      }
     }),
     {
       name: 'xyj-123-storage',

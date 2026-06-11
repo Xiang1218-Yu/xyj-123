@@ -10,7 +10,9 @@ import {
   Calendar,
   Users,
   BarChart3,
-  Filter
+  Filter,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
@@ -30,7 +32,7 @@ const statusMap: Record<AttendanceRecord['status'], { label: string; color: stri
   absent: { label: '缺勤', color: 'bg-red-100 text-red-700' }
 };
 
-interface NewRecordForm {
+interface RecordForm {
   employeeId: string;
   date: string;
   shiftType: ShiftType;
@@ -39,7 +41,7 @@ interface NewRecordForm {
   status: AttendanceRecord['status'];
 }
 
-const initialForm: NewRecordForm = {
+const initialForm: RecordForm = {
   employeeId: '',
   date: '',
   shiftType: 'morning',
@@ -52,13 +54,17 @@ export default function AttendanceStats() {
   const {
     employees,
     attendanceRecords,
-    addAttendanceRecord
+    addAttendanceRecord,
+    updateAttendanceRecord,
+    deleteAttendanceRecord
   } = useAppStore();
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<NewRecordForm>(initialForm);
+  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
+  const [form, setForm] = useState<RecordForm>(initialForm);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const filteredRecords = useMemo(() => {
     return attendanceRecords.filter((r) => {
@@ -97,18 +103,58 @@ export default function AttendanceStats() {
     return emp?.name || '未知员工';
   };
 
+  const openAddModal = () => {
+    setEditingRecord(null);
+    setForm(initialForm);
+    setShowModal(true);
+  };
+
+  const openEditModal = (record: AttendanceRecord) => {
+    setEditingRecord(record);
+    setForm({
+      employeeId: record.employeeId,
+      date: record.date,
+      shiftType: record.shiftType,
+      checkInTime: record.checkInTime || '',
+      checkOutTime: record.checkOutTime || '',
+      status: record.status
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingRecord(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = () => {
     if (!form.employeeId || !form.date) return;
-    addAttendanceRecord({
-      employeeId: form.employeeId,
-      date: form.date,
-      shiftType: form.shiftType,
-      checkInTime: form.checkInTime || undefined,
-      checkOutTime: form.checkOutTime || undefined,
-      status: form.status
-    });
-    setForm(initialForm);
-    setShowModal(false);
+    if (editingRecord) {
+      updateAttendanceRecord(editingRecord.id, {
+        employeeId: form.employeeId,
+        date: form.date,
+        shiftType: form.shiftType,
+        checkInTime: form.checkInTime || undefined,
+        checkOutTime: form.checkOutTime || undefined,
+        status: form.status
+      });
+    } else {
+      addAttendanceRecord({
+        employeeId: form.employeeId,
+        date: form.date,
+        shiftType: form.shiftType,
+        checkInTime: form.checkInTime || undefined,
+        checkOutTime: form.checkOutTime || undefined,
+        status: form.status
+      });
+    }
+    closeModal();
+  };
+
+  const handleDelete = (id: string) => {
+    deleteAttendanceRecord(id);
+    setDeleteConfirmId(null);
   };
 
   const resetFilters = () => {
@@ -120,9 +166,9 @@ export default function AttendanceStats() {
     <div className="space-y-6">
       <PageHeader
         title="出勤统计"
-        description="查看员工出勤记录与统计汇总"
+        description="查看员工出勤记录与统计汇总，支持新增、编辑和删除记录"
         actions={
-          <button onClick={() => setShowModal(true)} className="btn-primary">
+          <button onClick={openAddModal} className="btn-primary">
             <Plus className="w-5 h-5 mr-1.5" />
             添加记录
           </button>
@@ -288,12 +334,13 @@ export default function AttendanceStats() {
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">签到时间</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">签退时间</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">状态</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-primary-800">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary-100">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
+                  <td colSpan={7} className="px-6 py-16 text-center">
                     <Calendar className="w-12 h-12 text-primary-300 mx-auto mb-3" />
                     <p className="text-neutral-muted">
                       {startDate || endDate ? '所选日期范围内无记录' : '暂无出勤记录'}
@@ -323,6 +370,42 @@ export default function AttendanceStats() {
                           {statusMap[record.status].label}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        {deleteConfirmId === record.id ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-rose-600 mr-2">确认删除？</span>
+                            <button
+                              onClick={() => handleDelete(record.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-rose-500 text-white hover:bg-rose-600 transition-colors"
+                            >
+                              确认
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditModal(record)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors border border-primary-200"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              编辑
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmId(record.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              删除
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))
               )}
@@ -336,14 +419,20 @@ export default function AttendanceStats() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in">
             <div className="flex items-center justify-between p-6 border-b border-primary-100">
               <h2 className="font-serif text-xl font-bold text-neutral-text flex items-center gap-2">
-                <Plus className="w-5 h-5 text-amber-500" />
-                添加出勤记录
+                {editingRecord ? (
+                  <>
+                    <Edit2 className="w-5 h-5 text-primary-500" />
+                    编辑出勤记录
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 text-amber-500" />
+                    添加出勤记录
+                  </>
+                )}
               </h2>
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setForm(initialForm);
-                }}
+                onClick={closeModal}
                 className="p-1.5 rounded-lg hover:bg-primary-50 transition-colors"
               >
                 <X className="w-5 h-5 text-neutral-muted" />
@@ -434,10 +523,7 @@ export default function AttendanceStats() {
 
             <div className="flex justify-end gap-3 p-6 border-t border-primary-100">
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setForm(initialForm);
-                }}
+                onClick={closeModal}
                 className="btn-secondary"
               >
                 取消
@@ -447,7 +533,7 @@ export default function AttendanceStats() {
                 disabled={!form.employeeId || !form.date}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                确认添加
+                {editingRecord ? '确认修改' : '确认添加'}
               </button>
             </div>
           </div>
