@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -11,7 +11,11 @@ import {
   mockServiceItems,
   mockFuneralPackages,
   mockAlbums,
-  mockPhotos
+  mockPhotos,
+  mockEmployees,
+  mockShiftSchedules,
+  mockLeaveRequests,
+  mockAttendanceRecords
 } from '../data/mockData';
 
 interface AppState {
@@ -25,6 +29,10 @@ interface AppState {
   funeralPackages: FuneralPackage[];
   albums: Album[];
   photos: Photo[];
+  employees: Employee[];
+  shiftSchedules: ShiftSchedule[];
+  leaveRequests: LeaveRequest[];
+  attendanceRecords: AttendanceRecord[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -79,6 +87,29 @@ interface AppState {
   deletePhoto: (id: string) => void;
   getPhotoById: (id: string) => Photo | undefined;
   getPhotosByAlbumId: (albumId: string) => Photo[];
+
+  addEmployee: (employee: Omit<Employee, 'id'>) => Employee;
+  updateEmployee: (id: string, data: Partial<Employee>) => void;
+  deleteEmployee: (id: string) => void;
+  getEmployeeById: (id: string) => Employee | undefined;
+
+  addShiftSchedule: (schedule: Omit<ShiftSchedule, 'id'>) => ShiftSchedule;
+  updateShiftSchedule: (id: string, data: Partial<ShiftSchedule>) => void;
+  deleteShiftSchedule: (id: string) => void;
+  getShiftsByEmployeeId: (employeeId: string) => ShiftSchedule[];
+  getShiftsByDate: (date: string) => ShiftSchedule[];
+  batchSetShifts: (schedules: Omit<ShiftSchedule, 'id'>[]) => void;
+
+  addLeaveRequest: (request: Omit<LeaveRequest, 'id' | 'createdAt'>) => LeaveRequest;
+  updateLeaveRequest: (id: string, data: Partial<LeaveRequest>) => void;
+  approveLeaveRequest: (id: string, reviewerId: string) => void;
+  rejectLeaveRequest: (id: string, reviewerId: string) => void;
+  getLeaveRequestsByEmployeeId: (employeeId: string) => LeaveRequest[];
+
+  addAttendanceRecord: (record: Omit<AttendanceRecord, 'id'>) => AttendanceRecord;
+  updateAttendanceRecord: (id: string, data: Partial<AttendanceRecord>) => void;
+  getAttendanceByEmployeeId: (employeeId: string) => AttendanceRecord[];
+  getAttendanceByDate: (date: string) => AttendanceRecord[];
 }
 
 const generateId = (prefix: string) =>
@@ -97,6 +128,10 @@ export const useAppStore = create<AppState>()(
       funeralPackages: mockFuneralPackages,
       albums: mockAlbums,
       photos: mockPhotos,
+      employees: mockEmployees,
+      shiftSchedules: mockShiftSchedules,
+      leaveRequests: mockLeaveRequests,
+      attendanceRecords: mockAttendanceRecords,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -323,7 +358,114 @@ export const useAppStore = create<AppState>()(
             const dateA = a.takenAt ?? a.uploadedAt;
             const dateB = b.takenAt ?? b.uploadedAt;
             return new Date(dateB).getTime() - new Date(dateA).getTime();
-          })
+          }),
+
+      addEmployee: (employee) => {
+        const newEmployee = { ...employee, id: generateId('emp') };
+        set((state) => ({
+          employees: [...state.employees, newEmployee]
+        }));
+        return newEmployee;
+      },
+      updateEmployee: (id, data) =>
+        set((state) => ({
+          employees: state.employees.map((e) =>
+            e.id === id ? { ...e, ...data } : e
+          )
+        })),
+      deleteEmployee: (id) =>
+        set((state) => ({
+          employees: state.employees.filter((e) => e.id !== id),
+          shiftSchedules: state.shiftSchedules.filter((s) => s.employeeId !== id),
+          leaveRequests: state.leaveRequests.filter((l) => l.employeeId !== id),
+          attendanceRecords: state.attendanceRecords.filter((a) => a.employeeId !== id)
+        })),
+      getEmployeeById: (id) => get().employees.find((e) => e.id === id),
+
+      addShiftSchedule: (schedule) => {
+        const newSchedule = { ...schedule, id: generateId('shift') };
+        set((state) => ({
+          shiftSchedules: [...state.shiftSchedules, newSchedule]
+        }));
+        return newSchedule;
+      },
+      updateShiftSchedule: (id, data) =>
+        set((state) => ({
+          shiftSchedules: state.shiftSchedules.map((s) =>
+            s.id === id ? { ...s, ...data } : s
+          )
+        })),
+      deleteShiftSchedule: (id) =>
+        set((state) => ({
+          shiftSchedules: state.shiftSchedules.filter((s) => s.id !== id)
+        })),
+      getShiftsByEmployeeId: (employeeId) =>
+        get().shiftSchedules.filter((s) => s.employeeId === employeeId),
+      getShiftsByDate: (date) =>
+        get().shiftSchedules.filter((s) => s.date === date),
+      batchSetShifts: (schedules) => {
+        const newSchedules = schedules.map((s) => ({
+          ...s,
+          id: generateId('shift')
+        }));
+        set((state) => ({
+          shiftSchedules: [...state.shiftSchedules, ...newSchedules]
+        }));
+      },
+
+      addLeaveRequest: (request) => {
+        const newRequest: LeaveRequest = {
+          ...request,
+          id: generateId('leave'),
+          createdAt: new Date().toISOString()
+        };
+        set((state) => ({
+          leaveRequests: [...state.leaveRequests, newRequest]
+        }));
+        return newRequest;
+      },
+      updateLeaveRequest: (id, data) =>
+        set((state) => ({
+          leaveRequests: state.leaveRequests.map((l) =>
+            l.id === id ? { ...l, ...data } : l
+          )
+        })),
+      approveLeaveRequest: (id, reviewerId) =>
+        set((state) => ({
+          leaveRequests: state.leaveRequests.map((l) =>
+            l.id === id
+              ? { ...l, status: 'approved' as const, reviewedBy: reviewerId, reviewedAt: new Date().toISOString() }
+              : l
+          )
+        })),
+      rejectLeaveRequest: (id, reviewerId) =>
+        set((state) => ({
+          leaveRequests: state.leaveRequests.map((l) =>
+            l.id === id
+              ? { ...l, status: 'rejected' as const, reviewedBy: reviewerId, reviewedAt: new Date().toISOString() }
+              : l
+          )
+        })),
+      getLeaveRequestsByEmployeeId: (employeeId) =>
+        get().leaveRequests.filter((l) => l.employeeId === employeeId),
+
+      addAttendanceRecord: (record) => {
+        const newRecord = { ...record, id: generateId('att') };
+        set((state) => ({
+          attendanceRecords: [...state.attendanceRecords, newRecord]
+        }));
+        return newRecord;
+      },
+      updateAttendanceRecord: (id, data) =>
+        set((state) => ({
+          attendanceRecords: state.attendanceRecords.map((a) =>
+            a.id === id ? { ...a, ...data } : a
+          )
+        })),
+      getAttendanceByEmployeeId: (employeeId) =>
+        get().attendanceRecords.filter((a) => a.employeeId === employeeId),
+      getAttendanceByDate: (date) =>
+        get().attendanceRecords.filter((a) => a.date === date)
     }),
     {
       name: 'xyj-123-storage',
@@ -337,7 +479,11 @@ export const useAppStore = create<AppState>()(
         serviceItems: state.serviceItems,
         funeralPackages: state.funeralPackages,
         albums: state.albums,
-        photos: state.photos
+        photos: state.photos,
+        employees: state.employees,
+        shiftSchedules: state.shiftSchedules,
+        leaveRequests: state.leaveRequests,
+        attendanceRecords: state.attendanceRecords
       })
     }
   )

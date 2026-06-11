@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -480,4 +480,164 @@ export const mockPhotos: Photo[] = [
     takenAt: '2024-12-25',
     uploadedAt: '2025-01-12T10:30:00Z'
   }
+];
+
+export const mockEmployees: Employee[] = [
+  {
+    id: 'emp-001',
+    name: '张师傅',
+    phone: '13900139001',
+    role: 'cremation-operator',
+    status: 'active',
+    hireDate: '2022-03-01',
+    notes: '资深火化师，操作经验丰富。'
+  },
+  {
+    id: 'emp-002',
+    name: '李晓婷',
+    phone: '13900139002',
+    role: 'ceremony-host',
+    status: 'active',
+    hireDate: '2023-06-15',
+    notes: '仪式主持人，擅长温馨告别仪式。'
+  },
+  {
+    id: 'emp-003',
+    name: '王建国',
+    phone: '13900139003',
+    role: 'driver',
+    status: 'active',
+    hireDate: '2023-01-10'
+  },
+  {
+    id: 'emp-004',
+    name: '赵雅琴',
+    phone: '13900139004',
+    role: 'receptionist',
+    status: 'active',
+    hireDate: '2024-02-20',
+    notes: '前台接待，沟通能力强。'
+  },
+  {
+    id: 'emp-005',
+    name: '陈志远',
+    phone: '13900139005',
+    role: 'storage-manager',
+    status: 'active',
+    hireDate: '2022-08-05'
+  },
+  {
+    id: 'emp-006',
+    name: '孙丽华',
+    phone: '13900139006',
+    role: 'manager',
+    status: 'active',
+    hireDate: '2021-11-01',
+    notes: '服务中心经理，负责整体运营管理。'
+  }
+];
+
+export const mockShiftSchedules: ShiftSchedule[] = [
+  { id: 'shift-001', employeeId: 'emp-001', date: '2025-06-09', shiftType: 'morning' },
+  { id: 'shift-002', employeeId: 'emp-001', date: '2025-06-10', shiftType: 'morning' },
+  { id: 'shift-003', employeeId: 'emp-001', date: '2025-06-11', shiftType: 'afternoon' },
+  { id: 'shift-004', employeeId: 'emp-001', date: '2025-06-12', shiftType: 'rest' },
+  { id: 'shift-005', employeeId: 'emp-001', date: '2025-06-13', shiftType: 'morning' },
+  { id: 'shift-006', employeeId: 'emp-001', date: '2025-06-14', shiftType: 'morning' },
+  { id: 'shift-007', employeeId: 'emp-001', date: '2025-06-15', shiftType: 'rest' },
+  { id: 'shift-008', employeeId: 'emp-002', date: '2025-06-09', shiftType: 'afternoon' },
+  { id: 'shift-009', employeeId: 'emp-002', date: '2025-06-10', shiftType: 'afternoon' },
+  { id: 'shift-010', employeeId: 'emp-002', date: '2025-06-11', shiftType: 'morning' },
+  { id: 'shift-011', employeeId: 'emp-002', date: '2025-06-12', shiftType: 'afternoon' },
+  { id: 'shift-012', employeeId: 'emp-002', date: '2025-06-13', shiftType: 'rest' },
+  { id: 'shift-013', employeeId: 'emp-002', date: '2025-06-14', shiftType: 'morning' },
+  { id: 'shift-014', employeeId: 'emp-002', date: '2025-06-15', shiftType: 'rest' },
+  { id: 'shift-015', employeeId: 'emp-003', date: '2025-06-09', shiftType: 'morning' },
+  { id: 'shift-016', employeeId: 'emp-003', date: '2025-06-10', shiftType: 'morning' },
+  { id: 'shift-017', employeeId: 'emp-003', date: '2025-06-11', shiftType: 'morning' },
+  { id: 'shift-018', employeeId: 'emp-003', date: '2025-06-12', shiftType: 'rest' },
+  { id: 'shift-019', employeeId: 'emp-003', date: '2025-06-13', shiftType: 'afternoon' },
+  { id: 'shift-020', employeeId: 'emp-003', date: '2025-06-14', shiftType: 'morning' },
+  { id: 'shift-021', employeeId: 'emp-004', date: '2025-06-09', shiftType: 'afternoon' },
+  { id: 'shift-022', employeeId: 'emp-004', date: '2025-06-10', shiftType: 'morning' },
+  { id: 'shift-023', employeeId: 'emp-004', date: '2025-06-11', shiftType: 'afternoon' },
+  { id: 'shift-024', employeeId: 'emp-004', date: '2025-06-12', shiftType: 'morning' },
+  { id: 'shift-025', employeeId: 'emp-004', date: '2025-06-13', shiftType: 'afternoon' },
+  { id: 'shift-026', employeeId: 'emp-004', date: '2025-06-14', shiftType: 'rest' },
+  { id: 'shift-027', employeeId: 'emp-005', date: '2025-06-09', shiftType: 'morning' },
+  { id: 'shift-028', employeeId: 'emp-005', date: '2025-06-10', shiftType: 'afternoon' },
+  { id: 'shift-029', employeeId: 'emp-005', date: '2025-06-11', shiftType: 'morning' },
+  { id: 'shift-030', employeeId: 'emp-005', date: '2025-06-12', shiftType: 'morning' },
+  { id: 'shift-031', employeeId: 'emp-005', date: '2025-06-13', shiftType: 'rest' },
+  { id: 'shift-032', employeeId: 'emp-005', date: '2025-06-14', shiftType: 'afternoon' },
+  { id: 'shift-033', employeeId: 'emp-006', date: '2025-06-09', shiftType: 'morning' },
+  { id: 'shift-034', employeeId: 'emp-006', date: '2025-06-10', shiftType: 'morning' },
+  { id: 'shift-035', employeeId: 'emp-006', date: '2025-06-11', shiftType: 'morning' },
+  { id: 'shift-036', employeeId: 'emp-006', date: '2025-06-12', shiftType: 'morning' },
+  { id: 'shift-037', employeeId: 'emp-006', date: '2025-06-13', shiftType: 'morning' },
+  { id: 'shift-038', employeeId: 'emp-006', date: '2025-06-14', shiftType: 'rest' }
+];
+
+export const mockLeaveRequests: LeaveRequest[] = [
+  {
+    id: 'leave-001',
+    employeeId: 'emp-002',
+    type: 'annual',
+    startDate: '2025-06-16',
+    endDate: '2025-06-18',
+    reason: '家中有事需要处理',
+    status: 'pending',
+    createdAt: '2025-06-08T10:00:00Z'
+  },
+  {
+    id: 'leave-002',
+    employeeId: 'emp-003',
+    type: 'sick',
+    startDate: '2025-06-11',
+    endDate: '2025-06-11',
+    reason: '身体不适需就医',
+    status: 'pending',
+    createdAt: '2025-06-10T22:00:00Z'
+  },
+  {
+    id: 'leave-003',
+    employeeId: 'emp-001',
+    type: 'personal',
+    startDate: '2025-06-20',
+    endDate: '2025-06-20',
+    reason: '个人事务',
+    status: 'approved',
+    reviewedBy: 'emp-006',
+    reviewedAt: '2025-06-09T09:30:00Z',
+    createdAt: '2025-06-07T14:00:00Z'
+  },
+  {
+    id: 'leave-004',
+    employeeId: 'emp-004',
+    type: 'annual',
+    startDate: '2025-07-01',
+    endDate: '2025-07-05',
+    reason: '计划外出旅游',
+    status: 'rejected',
+    reviewedBy: 'emp-006',
+    reviewedAt: '2025-06-10T11:00:00Z',
+    createdAt: '2025-06-05T16:30:00Z'
+  }
+];
+
+export const mockAttendanceRecords: AttendanceRecord[] = [
+  { id: 'att-001', employeeId: 'emp-001', date: '2025-06-09', shiftType: 'morning', checkInTime: '08:00', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-002', employeeId: 'emp-001', date: '2025-06-10', shiftType: 'morning', checkInTime: '08:15', checkOutTime: '16:00', status: 'late' },
+  { id: 'att-003', employeeId: 'emp-002', date: '2025-06-09', shiftType: 'afternoon', checkInTime: '13:00', checkOutTime: '21:00', status: 'normal' },
+  { id: 'att-004', employeeId: 'emp-002', date: '2025-06-10', shiftType: 'afternoon', checkInTime: '13:00', checkOutTime: '20:30', status: 'early-leave' },
+  { id: 'att-005', employeeId: 'emp-003', date: '2025-06-09', shiftType: 'morning', checkInTime: '07:55', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-006', employeeId: 'emp-003', date: '2025-06-10', shiftType: 'morning', checkInTime: '08:00', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-007', employeeId: 'emp-004', date: '2025-06-09', shiftType: 'afternoon', checkInTime: '13:00', checkOutTime: '21:00', status: 'normal' },
+  { id: 'att-008', employeeId: 'emp-004', date: '2025-06-10', shiftType: 'morning', checkInTime: '08:00', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-009', employeeId: 'emp-005', date: '2025-06-09', shiftType: 'morning', checkInTime: '08:05', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-010', employeeId: 'emp-005', date: '2025-06-10', shiftType: 'afternoon', checkInTime: '13:00', checkOutTime: '21:00', status: 'normal' },
+  { id: 'att-011', employeeId: 'emp-006', date: '2025-06-09', shiftType: 'morning', checkInTime: '07:50', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-012', employeeId: 'emp-006', date: '2025-06-10', shiftType: 'morning', checkInTime: '08:00', checkOutTime: '16:00', status: 'normal' },
+  { id: 'att-013', employeeId: 'emp-001', date: '2025-06-11', shiftType: 'afternoon', status: 'absent' },
+  { id: 'att-014', employeeId: 'emp-002', date: '2025-06-11', shiftType: 'morning', checkInTime: '08:00', checkOutTime: '16:00', status: 'normal' }
 ];

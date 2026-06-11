@@ -9,6 +9,10 @@ import {
   Bell,
   Package,
   Images,
+  Users,
+  Calendar,
+  ClipboardCheck,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +26,10 @@ const navItems = [
   { to: "/urns", label: "骨灰存放", icon: Archive },
   { to: "/appointments", label: "主人预约", icon: CalendarCheck },
   { to: "/reminders", label: "纪念日提醒", icon: Bell },
+  { to: "/employees", label: "员工信息", icon: Users },
+  { to: "/shifts", label: "排班日历", icon: Calendar },
+  { to: "/leaves", label: "请假审批", icon: ClipboardCheck },
+  { to: "/attendance", label: "出勤统计", icon: BarChart3 },
 ];
 
 export default function Sidebar() {
@@ -39,7 +47,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 py-6 px-3 space-y-1">
+      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

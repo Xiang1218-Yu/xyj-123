@@ -17,6 +17,10 @@ import AlbumList from "@/pages/AlbumList";
 import AlbumDetail from "@/pages/AlbumDetail";
 import AlbumForm from "@/pages/AlbumForm";
 import OwnerAlbum from "@/pages/OwnerAlbum";
+import EmployeeList from "@/pages/EmployeeList";
+import ShiftCalendar from "@/pages/ShiftCalendar";
+import LeaveApproval from "@/pages/LeaveApproval";
+import AttendanceStats from "@/pages/AttendanceStats";
 
 export default function App() {
   return (
@@ -44,6 +48,10 @@ export default function App() {
           <Route path="/albums/new" element={<AlbumForm />} />
           <Route path="/albums/:id" element={<AlbumDetail />} />
           <Route path="/albums/:id/edit" element={<AlbumForm />} />
+          <Route path="/employees" element={<EmployeeList />} />
+          <Route path="/shifts" element={<ShiftCalendar />} />
+          <Route path="/leaves" element={<LeaveApproval />} />
+          <Route path="/attendance" element={<AttendanceStats />} />
         </Route>
       </Routes>
     </Router>

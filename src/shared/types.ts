@@ -106,3 +106,46 @@ export interface Album {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ShiftType = 'morning' | 'afternoon' | 'night' | 'rest';
+
+export interface Employee {
+  id: string;
+  name: string;
+  phone: string;
+  role: 'ceremony-host' | 'cremation-operator' | 'receptionist' | 'storage-manager' | 'driver' | 'manager';
+  status: 'active' | 'inactive';
+  hireDate: string;
+  avatarUrl?: string;
+  notes?: string;
+}
+
+export interface ShiftSchedule {
+  id: string;
+  employeeId: string;
+  date: string;
+  shiftType: ShiftType;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  type: 'annual' | 'sick' | 'personal' | 'bereavement';
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  date: string;
+  shiftType: ShiftType;
+  checkInTime?: string;
+  checkOutTime?: string;
+  status: 'normal' | 'late' | 'early-leave' | 'absent';
+}
