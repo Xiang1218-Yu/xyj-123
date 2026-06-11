@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -1870,5 +1870,226 @@ export const mockPetLifeStories: PetLifeStory[] = [
         updatedAt: '2025-04-25T10:40:00Z'
       }
     ]
+  }
+];
+
+export const mockMemorialProducts: MemorialProduct[] = [
+  {
+    id: 'mp-001',
+    name: '青玉灵位牌',
+    category: 'spirit-tablet',
+    description: '精选天然青玉材质，手工雕刻宠物姓名与生卒日期，庄重典雅，永世留念。',
+    price: 688,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Elegant%20jade%20spirit%20tablet%20memorial%20plaque%20with%20delicate%20carvings%20on%20a%20dark%20wood%20stand%2C%20traditional%20Chinese%20style%2C%20warm%20lighting%2C%20product%20photography&image_size=square_hd',
+    material: '天然青玉',
+    specs: '高20cm×宽12cm',
+    stock: 50,
+    sales: 128,
+    createdAt: '2025-01-15T08:00:00Z'
+  },
+  {
+    id: 'mp-002',
+    name: '红木雕花灵位牌',
+    category: 'spirit-tablet',
+    description: '老红木精工雕花，配金色刻字，传统工艺与现代审美相结合，彰显尊贵与庄重。',
+    price: 1288,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Red%20wood%20carved%20spirit%20memorial%20tablet%20with%20gold%20lettering%20on%20ornate%20stand%2C%20traditional%20craftsmanship%2C%20product%20photography&image_size=square_hd',
+    material: '老红木',
+    specs: '高25cm×宽15cm',
+    stock: 30,
+    sales: 76,
+    createdAt: '2025-01-20T08:00:00Z'
+  },
+  {
+    id: 'mp-003',
+    name: '水晶天使纪念摆件',
+    category: 'memorial-ornament',
+    description: 'K9水晶材质，内雕天使守护造型，寓意小天使在天堂受到守护，温馨而美丽。',
+    price: 398,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Crystal%20angel%20memorial%20ornament%20with%20inner%20carving%2C%20K9%20crystal%20material%2C%20soft%20light%20reflection%2C%20product%20photography%20on%20white%20background&image_size=square_hd',
+    material: 'K9水晶',
+    specs: '高12cm×宽8cm',
+    stock: 80,
+    sales: 215,
+    createdAt: '2025-02-01T08:00:00Z'
+  },
+  {
+    id: 'mp-004',
+    name: '树脂爪印纪念摆件',
+    category: 'memorial-ornament',
+    description: '可定制宠物爪印造型，配彩色树脂浇注，独一无二的纪念方式，留住爱的印记。',
+    price: 258,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Resin%20paw%20print%20memorial%20ornament%20with%20colorful%20resin%20fill%2C%20pet%20keepsake%2C%20warm%20tones%2C%20product%20photography&image_size=square_hd',
+    material: '环保树脂',
+    specs: '直径10cm',
+    stock: 120,
+    sales: 342,
+    createdAt: '2025-02-10T08:00:00Z'
+  },
+  {
+    id: 'mp-005',
+    name: '青花瓷骨灰罐',
+    category: 'urn',
+    description: '景德镇青花瓷工艺，手工绘制祥云纹样，密封性优良，典雅而永恒的安息之所。',
+    price: 1588,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Blue%20and%20white%20porcelain%20cremation%20urn%20with%20cloud%20patterns%2C%20Jingdezhen%20craftsmanship%2C%20elegant%20design%2C%20product%20photography&image_size=square_hd',
+    material: '景德镇青花瓷',
+    specs: '高18cm×直径12cm',
+    stock: 25,
+    sales: 89,
+    createdAt: '2025-01-10T08:00:00Z'
+  },
+  {
+    id: 'mp-006',
+    name: '黑檀木骨灰罐',
+    category: 'urn',
+    description: '精选黑檀木整木车制，木质温润厚重，配铜质密封盖，守护永恒安宁。',
+    price: 2388,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Ebony%20wood%20cremation%20urn%20with%20brass%20sealing%20lid%2C%20dark%20polished%20wood%20grain%2C%20dignified%20design%2C%20product%20photography&image_size=square_hd',
+    material: '黑檀木',
+    specs: '高16cm×直径14cm',
+    stock: 15,
+    sales: 45,
+    createdAt: '2025-01-15T08:00:00Z'
+  },
+  {
+    id: 'mp-007',
+    name: '汉白玉宠物墓碑',
+    category: 'pet-tombstone',
+    description: '天然汉白玉材质，支持定制雕刻宠物照片、名字和寄语，庄严肃穆的永恒纪念。',
+    price: 3688,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=White%20marble%20pet%20tombstone%20with%20elegant%20carving%2C%20cemetery%20memorial%20stone%2C%20dignified%20design%2C%20product%20photography&image_size=square_hd',
+    material: '天然汉白玉',
+    specs: '高40cm×宽30cm×厚8cm',
+    stock: 10,
+    sales: 33,
+    createdAt: '2025-03-01T08:00:00Z'
+  },
+  {
+    id: 'mp-008',
+    name: '花岗岩宠物墓碑',
+    category: 'pet-tombstone',
+    description: '黑色花岗岩材质，耐候性极强，激光雕刻不褪色，户外安放无忧。',
+    price: 2688,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Black%20granite%20pet%20gravestone%20with%20laser%20engraving%2C%20outdoor%20memorial%20marker%2C%20solemn%20design%2C%20product%20photography&image_size=square_hd',
+    material: '黑色花岗岩',
+    specs: '高35cm×宽25cm×厚6cm',
+    stock: 20,
+    sales: 52,
+    createdAt: '2025-03-10T08:00:00Z'
+  },
+  {
+    id: 'mp-009',
+    name: '檀香祭祀套装',
+    category: 'incense-candle',
+    description: '印度老山檀香线香配铜质香炉，香气悠远绵长，为逝去的伙伴祈福安息。',
+    price: 168,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Sandalwood%20incense%20set%20with%20brass%20burner%2C%20traditional%20Chinese%20incense%20ceremony%2C%20warm%20lighting%2C%20product%20photography&image_size=square_hd',
+    material: '印度老山檀香',
+    specs: '线香100支+铜香炉',
+    stock: 200,
+    sales: 567,
+    createdAt: '2025-02-20T08:00:00Z'
+  },
+  {
+    id: 'mp-010',
+    name: '长明烛礼盒',
+    category: 'incense-candle',
+    description: '特制无烟长明烛，燃烧时间长达72小时，寓意光明永不断绝，指引归途。',
+    price: 88,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Elegant%20memorial%20candle%20gift%20box%20with%20white%20candles%2C%20soft%20warm%20glow%2C%20respectful%20design%2C%20product%20photography&image_size=square_hd',
+    material: '植物蜡',
+    specs: '4支装/72小时燃烧',
+    stock: 300,
+    sales: 890,
+    createdAt: '2025-02-25T08:00:00Z'
+  },
+  {
+    id: 'mp-011',
+    name: '往生被（金色莲花纹）',
+    category: 'afterlife-blanket',
+    description: '金色莲花纹往生被，精工刺绣，寓意接引往生净土，覆盖骨灰罐或灵位，表达最后的祝福。',
+    price: 358,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Golden%20lotus%20pattern%20Buddhist%20memorial%20blanket%2C%20embroidered%20silk%20fabric%2C%20traditional%20design%2C%20product%20photography&image_size=square_hd',
+    material: '真丝缎面',
+    specs: '60cm×60cm',
+    stock: 60,
+    sales: 178,
+    createdAt: '2025-03-05T08:00:00Z'
+  },
+  {
+    id: 'mp-012',
+    name: '往生被（八宝祥云纹）',
+    category: 'afterlife-blanket',
+    description: '八宝祥云纹往生被，手工绣制，色泽庄重柔和，愿逝者在祥云之中安息。',
+    price: 468,
+    imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Eight%20treasures%20auspicious%20cloud%20pattern%20memorial%20blanket%2C%20hand%20embroidered%2C%20solemn%20colors%2C%20product%20photography&image_size=square_hd',
+    material: '织锦缎',
+    specs: '80cm×80cm',
+    stock: 40,
+    sales: 95,
+    createdAt: '2025-03-15T08:00:00Z'
+  }
+];
+
+export const mockMemorialOrders: Order[] = [
+  {
+    id: 'order-001',
+    orderNo: 'SM20250601001',
+    items: [
+      { productId: 'mp-001', quantity: 1 },
+      { productId: 'mp-009', quantity: 2 }
+    ],
+    address: {
+      name: '张明华',
+      phone: '13800138001',
+      addressType: 'urn-storage',
+      province: '北京市',
+      city: '北京市',
+      district: '朝阳区',
+      detail: '宠爱纪念园A区3排-001号位',
+      notes: '请放置在骨灰存放处'
+    },
+    totalAmount: 1024,
+    status: 'placed',
+    createdAt: '2025-06-01T10:30:00Z',
+    paidAt: '2025-06-01T10:32:00Z',
+    placedAt: '2025-06-03T14:00:00Z',
+    placementPhotos: [
+      {
+        id: 'pp-001',
+        url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Memorial%20products%20placed%20at%20pet%20urn%20storage%20shelf%2C%20jade%20spirit%20tablet%20and%20incense%20set%20neatly%20arranged%2C%20warm%20memorial%20hall%20lighting&image_size=square_hd',
+        caption: '灵位牌与檀香已放置在骨灰存放位',
+        takenAt: '2025-06-03T14:00:00Z'
+      },
+      {
+        id: 'pp-002',
+        url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Close%20up%20of%20memorial%20items%20on%20shelf%2C%20incense%20burning%20softly%2C%20peaceful%20atmosphere%2C%20warm%20indoor%20lighting&image_size=square_hd',
+        caption: '檀香已点燃祈福',
+        takenAt: '2025-06-03T14:05:00Z'
+      }
+    ],
+    placementNote: '已按照要求将灵位牌和檀香放置在骨灰存放处，并点燃檀香祈福。'
+  },
+  {
+    id: 'order-002',
+    orderNo: 'SM20250605002',
+    items: [
+      { productId: 'mp-005', quantity: 1 }
+    ],
+    address: {
+      name: '李小红',
+      phone: '13800138002',
+      addressType: 'home',
+      province: '上海市',
+      city: '上海市',
+      district: '浦东新区',
+      detail: '陆家嘴环路1000号2栋1801'
+    },
+    totalAmount: 1588,
+    status: 'processing',
+    createdAt: '2025-06-05T16:20:00Z',
+    paidAt: '2025-06-05T16:22:00Z',
+    placementPhotos: []
   }
 ];

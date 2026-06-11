@@ -16,6 +16,8 @@ import {
   BookOpen,
   FileSignature,
   ScrollText,
+  ShoppingBag,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,8 @@ const navItems = [
   { to: "/ceremonies", label: "告别仪式", icon: HeartHandshake },
   { to: "/cremations", label: "火化管理", icon: Flame },
   { to: "/urns", label: "骨灰存放", icon: Archive },
+  { to: "/memorial-shop", label: "祭祀用品商城", icon: ShoppingBag },
+  { to: "/memorial-orders", label: "用品订单", icon: ClipboardList },
   { to: "/appointments", label: "主人预约", icon: CalendarCheck },
   { to: "/reminders", label: "纪念日提醒", icon: Bell },
   { to: "/employees", label: "员工信息", icon: Users },

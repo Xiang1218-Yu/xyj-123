@@ -30,6 +30,9 @@ import ContractDetail from "@/pages/ContractDetail";
 import PetLifeStoryList from "@/pages/PetLifeStoryList";
 import PetLifeStoryEditor from "@/pages/PetLifeStoryEditor";
 import PetLifeStoryView from "@/pages/PetLifeStoryView";
+import MemorialShop from "@/pages/MemorialShop";
+import CheckoutPage from "@/pages/CheckoutPage";
+import OrderList from "@/pages/OrderList";
 
 export default function App() {
   return (
@@ -73,6 +76,9 @@ export default function App() {
           <Route path="/shifts" element={<ShiftCalendar />} />
           <Route path="/leaves" element={<LeaveApproval />} />
           <Route path="/attendance" element={<AttendanceStats />} />
+          <Route path="/memorial-shop" element={<MemorialShop />} />
+          <Route path="/memorial-shop/checkout" element={<CheckoutPage />} />
+          <Route path="/memorial-orders" element={<OrderList />} />
         </Route>
       </Routes>
     </Router>

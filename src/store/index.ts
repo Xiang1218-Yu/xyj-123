@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -22,7 +22,9 @@ import {
   mockContracts,
   mockContractSignatures,
   mockContractTimelines,
-  mockPetLifeStories
+  mockPetLifeStories,
+  mockMemorialProducts,
+  mockMemorialOrders
 } from '../data/mockData';
 
 interface AppState {
@@ -51,6 +53,10 @@ interface AppState {
   contractTimelines: ContractTimelineEntry[];
 
   petLifeStories: PetLifeStory[];
+
+  memorialProducts: MemorialProduct[];
+  cartItems: CartItem[];
+  memorialOrders: Order[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -186,6 +192,21 @@ interface AppState {
   updateStoryNode: (storyId: string, nodeId: string, data: Partial<Omit<StoryNode, 'id' | 'storyId' | 'createdAt' | 'updatedAt'>>) => void;
   deleteStoryNode: (storyId: string, nodeId: string) => void;
   reorderStoryNodes: (storyId: string, nodes: StoryNode[]) => void;
+
+  addToCart: (productId: string, quantity?: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartItemQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  getCartTotal: () => number;
+  getCartItemCount: () => number;
+  getMemorialProductById: (id: string) => MemorialProduct | undefined;
+  createOrder: (address: ShippingAddress) => Order;
+  payOrder: (orderId: string) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  addPlacementPhoto: (orderId: string, photo: Omit<OrderPlacementPhoto, 'id'>) => void;
+  updatePlacementNote: (orderId: string, note: string) => void;
+  getOrderById: (id: string) => Order | undefined;
+  generateOrderNo: () => string;
 }
 
 const generateId = (prefix: string) =>
@@ -216,6 +237,9 @@ export const useAppStore = create<AppState>()(
       contractSignatures: mockContractSignatures,
       contractTimelines: mockContractTimelines,
       petLifeStories: mockPetLifeStories,
+      memorialProducts: mockMemorialProducts,
+      cartItems: [],
+      memorialOrders: mockMemorialOrders,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -1032,6 +1056,121 @@ export const useAppStore = create<AppState>()(
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((n, index) => ({ ...n, sortOrder: index, updatedAt: now }));
         get().updatePetLifeStory(storyId, { nodes: reorderedNodes, updatedAt: now });
+      },
+
+      addToCart: (productId, quantity = 1) => {
+        set((state) => {
+          const existing = state.cartItems.find((item) => item.productId === productId);
+          if (existing) {
+            return {
+              cartItems: state.cartItems.map((item) =>
+                item.productId === productId
+                  ? { ...item, quantity: item.quantity + quantity }
+                  : item
+              )
+            };
+          }
+          return {
+            cartItems: [...state.cartItems, { productId, quantity }]
+          };
+        });
+      },
+      removeFromCart: (productId) =>
+        set((state) => ({
+          cartItems: state.cartItems.filter((item) => item.productId !== productId)
+        })),
+      updateCartItemQuantity: (productId, quantity) => {
+        if (quantity <= 0) {
+          get().removeFromCart(productId);
+          return;
+        }
+        set((state) => ({
+          cartItems: state.cartItems.map((item) =>
+            item.productId === productId ? { ...item, quantity } : item
+          )
+        }));
+      },
+      clearCart: () => set({ cartItems: [] }),
+      getCartTotal: () => {
+        const state = get();
+        return state.cartItems.reduce((total, item) => {
+          const product = state.memorialProducts.find((p) => p.id === item.productId);
+          return total + (product ? product.price * item.quantity : 0);
+        }, 0);
+      },
+      getCartItemCount: () =>
+        get().cartItems.reduce((count, item) => count + item.quantity, 0),
+      getMemorialProductById: (id) =>
+        get().memorialProducts.find((p) => p.id === id),
+      createOrder: (address) => {
+        const now = new Date().toISOString();
+        const orderNo = get().generateOrderNo();
+        const totalAmount = get().getCartTotal();
+        const newOrder: Order = {
+          id: generateId('order'),
+          orderNo,
+          items: [...get().cartItems],
+          address,
+          totalAmount,
+          status: 'pending-payment',
+          createdAt: now,
+          placementPhotos: []
+        };
+        set((state) => ({
+          memorialOrders: [...state.memorialOrders, newOrder],
+          cartItems: []
+        }));
+        return newOrder;
+      },
+      payOrder: (orderId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          memorialOrders: state.memorialOrders.map((o) =>
+            o.id === orderId ? { ...o, status: 'paid' as const, paidAt: now } : o
+          )
+        }));
+      },
+      updateOrderStatus: (orderId, status) =>
+        set((state) => ({
+          memorialOrders: state.memorialOrders.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  status,
+                  ...(status === 'placed' ? { placedAt: new Date().toISOString() } : {})
+                }
+              : o
+          )
+        })),
+      addPlacementPhoto: (orderId, photo) => {
+        const newPhoto: OrderPlacementPhoto = {
+          ...photo,
+          id: generateId('pp')
+        };
+        set((state) => ({
+          memorialOrders: state.memorialOrders.map((o) =>
+            o.id === orderId
+              ? { ...o, placementPhotos: [...o.placementPhotos, newPhoto] }
+              : o
+          )
+        }));
+      },
+      updatePlacementNote: (orderId, note) =>
+        set((state) => ({
+          memorialOrders: state.memorialOrders.map((o) =>
+            o.id === orderId ? { ...o, placementNote: note } : o
+          )
+        })),
+      getOrderById: (id) => get().memorialOrders.find((o) => o.id === id),
+      generateOrderNo: () => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const count = get().memorialOrders.filter((o) =>
+          o.orderNo.startsWith(`SM${y}${m}${d}`)
+        ).length + 1;
+        return `SM${y}${m}${d}${String(count).padStart(3, '0')}`;
       }
     }),
     {
@@ -1058,7 +1197,10 @@ export const useAppStore = create<AppState>()(
         contracts: state.contracts,
         contractSignatures: state.contractSignatures,
         contractTimelines: state.contractTimelines,
-        petLifeStories: state.petLifeStories
+        petLifeStories: state.petLifeStories,
+        memorialProducts: state.memorialProducts,
+        cartItems: state.cartItems,
+        memorialOrders: state.memorialOrders
       })
     }
   )

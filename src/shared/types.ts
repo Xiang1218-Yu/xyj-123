@@ -363,3 +363,94 @@ export interface PetLifeStory {
   updatedAt: string;
   nodes: StoryNode[];
 }
+
+export type MemorialProductCategory =
+  | 'spirit-tablet'
+  | 'memorial-ornament'
+  | 'urn'
+  | 'pet-tombstone'
+  | 'incense-candle'
+  | 'afterlife-blanket';
+
+export const MemorialProductCategoryLabel: Record<MemorialProductCategory, string> = {
+  'spirit-tablet': '灵位牌',
+  'memorial-ornament': '纪念摆件',
+  urn: '骨灰罐',
+  'pet-tombstone': '宠物墓碑',
+  'incense-candle': '祭祀香烛',
+  'afterlife-blanket': '往生被',
+};
+
+export interface MemorialProduct {
+  id: string;
+  name: string;
+  category: MemorialProductCategory;
+  description: string;
+  price: number;
+  imageUrl: string;
+  material?: string;
+  specs?: string;
+  stock: number;
+  sales: number;
+  createdAt: string;
+}
+
+export interface CartItem {
+  productId: string;
+  quantity: number;
+}
+
+export type OrderStatus =
+  | 'pending-payment'
+  | 'paid'
+  | 'processing'
+  | 'placed'
+  | 'completed';
+
+export const OrderStatusLabel: Record<OrderStatus, string> = {
+  'pending-payment': '待支付',
+  paid: '已支付',
+  processing: '备货中',
+  placed: '已放置',
+  completed: '已完成',
+};
+
+export type AddressType = 'home' | 'urn-storage' | 'cemetery';
+
+export const AddressTypeLabel: Record<AddressType, string> = {
+  home: '家庭住址',
+  'urn-storage': '骨灰存放处',
+  cemetery: '墓地/安放地',
+};
+
+export interface ShippingAddress {
+  name: string;
+  phone: string;
+  addressType: AddressType;
+  province: string;
+  city: string;
+  district: string;
+  detail: string;
+  notes?: string;
+}
+
+export interface OrderPlacementPhoto {
+  id: string;
+  url: string;
+  caption?: string;
+  takenAt: string;
+}
+
+export interface Order {
+  id: string;
+  orderNo: string;
+  items: CartItem[];
+  address: ShippingAddress;
+  totalAmount: number;
+  status: OrderStatus;
+  createdAt: string;
+  paidAt?: string;
+  placedAt?: string;
+  placementPhotos: OrderPlacementPhoto[];
+  placementNote?: string;
+}
