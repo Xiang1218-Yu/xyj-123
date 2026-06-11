@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem, Furnace, FurnaceMaintenance, FurnaceCremationProcess, CremationProcessStage, TemperaturePoint } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -25,7 +25,10 @@ import {
   mockPetLifeStories,
   mockMemorialProducts,
   mockMemorialOrders,
-  mockCeremonyTemplates
+  mockCeremonyTemplates,
+  mockFurnaces,
+  mockFurnaceMaintenances,
+  mockFurnaceProcesses
 } from '../data/mockData';
 
 interface AppState {
@@ -85,6 +88,30 @@ interface AppState {
   updateCremation: (id: string, data: Partial<Cremation>) => void;
   deleteCremation: (id: string) => void;
   getCremationById: (id: string) => Cremation | undefined;
+
+  furnaces: Furnace[];
+  furnaceMaintenances: FurnaceMaintenance[];
+  furnaceProcesses: FurnaceCremationProcess[];
+
+  addFurnace: (furnace: Omit<Furnace, 'id' | 'createdAt' | 'updatedAt'>) => Furnace;
+  updateFurnace: (id: string, data: Partial<Furnace>) => void;
+  deleteFurnace: (id: string) => void;
+  getFurnaceById: (id: string) => Furnace | undefined;
+  updateFurnaceTemperature: (id: string, temperature: number) => void;
+  updateFurnaceStatus: (id: string, status: Furnace['status']) => void;
+
+  addFurnaceMaintenance: (maintenance: Omit<FurnaceMaintenance, 'id'>) => FurnaceMaintenance;
+  updateFurnaceMaintenance: (id: string, data: Partial<FurnaceMaintenance>) => void;
+  deleteFurnaceMaintenance: (id: string) => void;
+  getMaintenancesByFurnaceId: (furnaceId: string) => FurnaceMaintenance[];
+
+  addFurnaceProcess: (process: Omit<FurnaceCremationProcess, 'id' | 'createdAt' | 'updatedAt'>) => FurnaceCremationProcess;
+  updateFurnaceProcess: (id: string, data: Partial<FurnaceCremationProcess>) => void;
+  deleteFurnaceProcess: (id: string) => void;
+  getProcessById: (id: string) => FurnaceCremationProcess | undefined;
+  getActiveProcessByFurnaceId: (furnaceId: string) => FurnaceCremationProcess | undefined;
+  advanceProcessStage: (processId: string) => void;
+  addTemperaturePoint: (processId: string, point: TemperaturePoint) => void;
 
   addUrn: (urn: Omit<Urn, 'id'>) => Urn;
   updateUrn: (id: string, data: Partial<Urn>) => void;
@@ -249,6 +276,9 @@ export const useAppStore = create<AppState>()(
       memorialProducts: mockMemorialProducts,
       cartItems: [],
       memorialOrders: mockMemorialOrders,
+      furnaces: mockFurnaces,
+      furnaceMaintenances: mockFurnaceMaintenances,
+      furnaceProcesses: mockFurnaceProcesses,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -1199,6 +1229,158 @@ export const useAppStore = create<AppState>()(
           o.orderNo.startsWith(`SM${y}${m}${d}`)
         ).length + 1;
         return `SM${y}${m}${d}${String(count).padStart(3, '0')}`;
+      },
+
+      addFurnace: (furnace) => {
+        const now = new Date().toISOString();
+        const newFurnace: Furnace = {
+          ...furnace,
+          id: generateId('furnace'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          furnaces: [...state.furnaces, newFurnace]
+        }));
+        return newFurnace;
+      },
+      updateFurnace: (id, data) =>
+        set((state) => ({
+          furnaces: state.furnaces.map((f) =>
+            f.id === id ? { ...f, ...data, updatedAt: new Date().toISOString() } : f
+          )
+        })),
+      deleteFurnace: (id) =>
+        set((state) => ({
+          furnaces: state.furnaces.filter((f) => f.id !== id),
+          furnaceMaintenances: state.furnaceMaintenances.filter((m) => m.furnaceId !== id),
+          furnaceProcesses: state.furnaceProcesses.filter((p) => p.furnaceId !== id)
+        })),
+      getFurnaceById: (id) => get().furnaces.find((f) => f.id === id),
+      updateFurnaceTemperature: (id, temperature) =>
+        set((state) => ({
+          furnaces: state.furnaces.map((f) =>
+            f.id === id ? { ...f, currentTemperature: temperature, updatedAt: new Date().toISOString() } : f
+          )
+        })),
+      updateFurnaceStatus: (id, status) =>
+        set((state) => ({
+          furnaces: state.furnaces.map((f) =>
+            f.id === id ? { ...f, status, updatedAt: new Date().toISOString() } : f
+          )
+        })),
+
+      addFurnaceMaintenance: (maintenance) => {
+        const newMaintenance: FurnaceMaintenance = {
+          ...maintenance,
+          id: generateId('fmain')
+        };
+        set((state) => ({
+          furnaceMaintenances: [...state.furnaceMaintenances, newMaintenance]
+        }));
+        if (maintenance.type === 'cleaning' || maintenance.type === 'inspection' || maintenance.type === 'repair') {
+          get().updateFurnace(maintenance.furnaceId, { lastMaintenanceDate: maintenance.performedAt.slice(0, 10) });
+        }
+        if (maintenance.nextDueDate) {
+          get().updateFurnace(maintenance.furnaceId, { nextMaintenanceDate: maintenance.nextDueDate });
+        }
+        return newMaintenance;
+      },
+      updateFurnaceMaintenance: (id, data) =>
+        set((state) => ({
+          furnaceMaintenances: state.furnaceMaintenances.map((m) =>
+            m.id === id ? { ...m, ...data } : m
+          )
+        })),
+      deleteFurnaceMaintenance: (id) =>
+        set((state) => ({
+          furnaceMaintenances: state.furnaceMaintenances.filter((m) => m.id !== id)
+        })),
+      getMaintenancesByFurnaceId: (furnaceId) =>
+        get()
+          .furnaceMaintenances.filter((m) => m.furnaceId === furnaceId)
+          .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()),
+
+      addFurnaceProcess: (process) => {
+        const now = new Date().toISOString();
+        const newProcess: FurnaceCremationProcess = {
+          ...process,
+          id: generateId('fproc'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          furnaceProcesses: [...state.furnaceProcesses, newProcess]
+        }));
+        get().updateFurnaceStatus(process.furnaceId, 'running');
+        return newProcess;
+      },
+      updateFurnaceProcess: (id, data) =>
+        set((state) => ({
+          furnaceProcesses: state.furnaceProcesses.map((p) =>
+            p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
+          )
+        })),
+      deleteFurnaceProcess: (id) => {
+        const process = get().getProcessById(id);
+        set((state) => ({
+          furnaceProcesses: state.furnaceProcesses.filter((p) => p.id !== id)
+        }));
+        if (process) {
+          const hasOtherActive = get()
+            .furnaceProcesses
+            .filter((p) => p.furnaceId === process.furnaceId && p.stage !== 'unloading' && !p.completedTime)
+            .length > 0;
+          if (!hasOtherActive) {
+            get().updateFurnaceStatus(process.furnaceId, 'idle');
+          }
+        }
+      },
+      getProcessById: (id) => get().furnaceProcesses.find((p) => p.id === id),
+      getActiveProcessByFurnaceId: (furnaceId) =>
+        get().furnaceProcesses.find(
+          (p) => p.furnaceId === furnaceId && p.stage !== 'unloading' && !p.completedTime
+        ),
+      advanceProcessStage: (processId) => {
+        const process = get().getProcessById(processId);
+        if (!process) return;
+        const now = new Date().toISOString();
+        const stageOrder: CremationProcessStage[] = ['idle', 'loading', 'heating', 'constant', 'cooling', 'unloading'];
+        const currentIndex = stageOrder.indexOf(process.stage);
+        if (currentIndex < stageOrder.length - 1) {
+          const nextStage = stageOrder[currentIndex + 1];
+          const updates: Partial<FurnaceCremationProcess> = { stage: nextStage };
+          switch (nextStage) {
+            case 'loading':
+              updates.loadingTime = now;
+              break;
+            case 'heating':
+              updates.heatingTime = now;
+              break;
+            case 'constant':
+              updates.constantStartTime = now;
+              break;
+            case 'cooling':
+              updates.constantEndTime = now;
+              updates.coolingStartTime = now;
+              break;
+            case 'unloading':
+              updates.unloadingTime = now;
+              updates.completedTime = now;
+              break;
+          }
+          get().updateFurnaceProcess(processId, updates);
+          if (nextStage === 'unloading') {
+            get().updateFurnaceStatus(process.furnaceId, 'idle');
+          }
+        }
+      },
+      addTemperaturePoint: (processId, point) => {
+        const process = get().getProcessById(processId);
+        if (!process) return;
+        const updatedHistory = [...process.temperatureHistory, point];
+        get().updateFurnaceProcess(processId, { temperatureHistory: updatedHistory });
+        get().updateFurnaceTemperature(process.furnaceId, point.temperature);
       }
     }),
     {
@@ -1229,7 +1411,10 @@ export const useAppStore = create<AppState>()(
         petLifeStories: state.petLifeStories,
         memorialProducts: state.memorialProducts,
         cartItems: state.cartItems,
-        memorialOrders: state.memorialOrders
+        memorialOrders: state.memorialOrders,
+        furnaces: state.furnaces,
+        furnaceMaintenances: state.furnaceMaintenances,
+        furnaceProcesses: state.furnaceProcesses
       })
     }
   )

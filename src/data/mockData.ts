@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order } from '../shared/types';
+import type { Owner, Pet, Ceremony, CeremonyTemplate, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order, Furnace, FurnaceMaintenance, FurnaceCremationProcess } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -2195,5 +2195,136 @@ export const mockMemorialOrders: Order[] = [
     createdAt: '2025-06-05T16:20:00Z',
     paidAt: '2025-06-05T16:22:00Z',
     placementPhotos: []
+  }
+];
+
+export const mockFurnaces: Furnace[] = [
+  {
+    id: 'F-001',
+    name: '1号火化炉',
+    model: 'PET-CR-2000A',
+    manufacturer: '永洁环保设备',
+    installDate: '2023-06-15',
+    maxTemperature: 1200,
+    currentTemperature: 25,
+    status: 'idle',
+    totalUsageHours: 1520,
+    lastMaintenanceDate: '2025-05-20',
+    nextMaintenanceDate: '2025-08-20',
+    notes: '高效节能型，适合中小型宠物',
+    createdAt: '2023-06-15T00:00:00Z',
+    updatedAt: '2025-06-10T08:00:00Z'
+  },
+  {
+    id: 'F-002',
+    name: '2号火化炉',
+    model: 'PET-CR-3000B',
+    manufacturer: '永洁环保设备',
+    installDate: '2023-06-15',
+    maxTemperature: 1300,
+    currentTemperature: 856,
+    status: 'running',
+    totalUsageHours: 1680,
+    lastMaintenanceDate: '2025-04-18',
+    nextMaintenanceDate: '2025-07-18',
+    notes: '大型火化炉，适合大型宠物及批量火化',
+    createdAt: '2023-06-15T00:00:00Z',
+    updatedAt: '2025-06-11T10:30:00Z'
+  },
+  {
+    id: 'F-003',
+    name: '3号火化炉',
+    model: 'PET-CR-1500C',
+    manufacturer: '安泰环保科技',
+    installDate: '2024-03-20',
+    maxTemperature: 1100,
+    currentTemperature: 25,
+    status: 'maintenance',
+    totalUsageHours: 650,
+    lastMaintenanceDate: '2025-02-10',
+    nextMaintenanceDate: '2025-06-11',
+    notes: '经济型火化炉，正在进行定期检修',
+    createdAt: '2024-03-20T00:00:00Z',
+    updatedAt: '2025-06-11T09:00:00Z'
+  }
+];
+
+export const mockFurnaceMaintenances: FurnaceMaintenance[] = [
+  {
+    id: 'fmain-001',
+    furnaceId: 'F-001',
+    type: 'cleaning',
+    title: '炉膛深度清洁',
+    description: '清除炉膛内积灰和残留物，检查烟道畅通情况，更换过滤棉。',
+    performedBy: '设备科-王工',
+    performedAt: '2025-05-20T14:00:00Z',
+    nextDueDate: '2025-08-20',
+    cost: 500,
+    partsUsed: '耐高温过滤棉x2, 炉膛清洁剂x1'
+  },
+  {
+    id: 'fmain-002',
+    furnaceId: 'F-002',
+    type: 'inspection',
+    title: '季度安全检修',
+    description: '全面检查燃烧系统、温控系统、尾气处理系统，校准温度传感器。',
+    performedBy: '设备科-李工',
+    performedAt: '2025-04-18T10:00:00Z',
+    nextDueDate: '2025-07-18',
+    cost: 1200,
+    partsUsed: '温度传感器x1'
+  },
+  {
+    id: 'fmain-003',
+    furnaceId: 'F-001',
+    type: 'repair',
+    title: '点火系统维修',
+    description: '点火器损坏导致无法正常点火，更换点火电极及高压包。',
+    performedBy: '厂家售后-赵工',
+    performedAt: '2025-03-15T09:30:00Z',
+    cost: 3500,
+    partsUsed: '点火电极x1, 高压包x1'
+  },
+  {
+    id: 'fmain-004',
+    furnaceId: 'F-003',
+    type: 'parts-replacement',
+    title: '更换燃烧室耐火砖',
+    description: '燃烧室耐火砖出现裂纹，进行整体更换以防止热量损失。',
+    performedBy: '设备科-王工',
+    performedAt: '2025-02-10T08:00:00Z',
+    nextDueDate: '2025-06-11',
+    cost: 8000,
+    partsUsed: '耐高温耐火砖x50块, 耐火水泥x2桶'
+  }
+];
+
+export const mockFurnaceProcesses: FurnaceCremationProcess[] = [
+  {
+    id: 'fproc-001',
+    furnaceId: 'F-002',
+    cremationId: 'cremation-004',
+    petName: '雪球',
+    stage: 'constant',
+    loadingTime: '2025-06-11T09:00:00Z',
+    heatingTime: '2025-06-11T09:15:00Z',
+    constantStartTime: '2025-06-11T10:00:00Z',
+    targetTemperature: 900,
+    temperatureHistory: [
+      { time: '09:00', temperature: 25 },
+      { time: '09:10', temperature: 180 },
+      { time: '09:20', temperature: 420 },
+      { time: '09:30', temperature: 650 },
+      { time: '09:40', temperature: 820 },
+      { time: '09:50', temperature: 890 },
+      { time: '10:00', temperature: 900 },
+      { time: '10:10', temperature: 905 },
+      { time: '10:20', temperature: 898 },
+      { time: '10:30', temperature: 856 }
+    ],
+    operator: '张师傅',
+    notes: '萨摩耶，体重约28kg，预计恒温1.5小时',
+    createdAt: '2025-06-11T09:00:00Z',
+    updatedAt: '2025-06-11T10:30:00Z'
   }
 ];

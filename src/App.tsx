@@ -7,6 +7,7 @@ import PetForm from "@/pages/PetForm";
 import CeremonyList from "@/pages/CeremonyList";
 import CeremonyForm from "@/pages/CeremonyForm";
 import CremationList from "@/pages/CremationList";
+import FurnaceManagement from "@/pages/FurnaceManagement";
 import UrnStorage from "@/pages/UrnStorage";
 import Appointments from "@/pages/Appointments";
 import ReminderList from "@/pages/ReminderList";
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/ceremonies/new" element={<CeremonyForm />} />
           <Route path="/ceremonies/:id/edit" element={<CeremonyForm />} />
           <Route path="/cremations" element={<CremationList />} />
+          <Route path="/furnaces" element={<FurnaceManagement />} />
           <Route path="/urns" element={<UrnStorage />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reminders" element={<ReminderList />} />

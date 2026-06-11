@@ -82,6 +82,109 @@ export interface Cremation {
   operator?: string;
 }
 
+export type FurnaceStatus = 'idle' | 'running' | 'maintenance' | 'cleaning' | 'offline';
+
+export const FurnaceStatusLabel: Record<FurnaceStatus, string> = {
+  idle: '空闲',
+  running: '运行中',
+  maintenance: '检修中',
+  cleaning: '清洁中',
+  offline: '离线'
+};
+
+export const FurnaceStatusColor: Record<FurnaceStatus, string> = {
+  idle: 'bg-green-500',
+  running: 'bg-orange-500',
+  maintenance: 'bg-yellow-500',
+  cleaning: 'bg-blue-500',
+  offline: 'bg-gray-500'
+};
+
+export interface Furnace {
+  id: string;
+  name: string;
+  model: string;
+  manufacturer: string;
+  installDate: string;
+  maxTemperature: number;
+  currentTemperature: number;
+  status: FurnaceStatus;
+  totalUsageHours: number;
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MaintenanceType = 'cleaning' | 'inspection' | 'repair' | 'parts-replacement';
+
+export const MaintenanceTypeLabel: Record<MaintenanceType, string> = {
+  cleaning: '清洁',
+  inspection: '检修',
+  repair: '维修',
+  'parts-replacement': '零件更换'
+};
+
+export interface FurnaceMaintenance {
+  id: string;
+  furnaceId: string;
+  type: MaintenanceType;
+  title: string;
+  description: string;
+  performedBy: string;
+  performedAt: string;
+  nextDueDate?: string;
+  cost?: number;
+  partsUsed?: string;
+}
+
+export type CremationProcessStage = 'idle' | 'loading' | 'heating' | 'constant' | 'cooling' | 'unloading';
+
+export const CremationProcessStageLabel: Record<CremationProcessStage, string> = {
+  idle: '待开始',
+  loading: '入炉',
+  heating: '升温',
+  constant: '恒温',
+  cooling: '降温',
+  unloading: '出炉'
+};
+
+export const CremationProcessStageColor: Record<CremationProcessStage, string> = {
+  idle: 'bg-gray-400',
+  loading: 'bg-blue-500',
+  heating: 'bg-orange-500',
+  constant: 'bg-red-500',
+  cooling: 'bg-cyan-500',
+  unloading: 'bg-green-500'
+};
+
+export interface TemperaturePoint {
+  time: string;
+  temperature: number;
+}
+
+export interface FurnaceCremationProcess {
+  id: string;
+  furnaceId: string;
+  cremationId?: string;
+  petName?: string;
+  stage: CremationProcessStage;
+  loadingTime?: string;
+  heatingTime?: string;
+  constantStartTime?: string;
+  constantEndTime?: string;
+  coolingStartTime?: string;
+  unloadingTime?: string;
+  completedTime?: string;
+  targetTemperature: number;
+  temperatureHistory: TemperaturePoint[];
+  operator?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Urn {
   id: string;
   petId: string;
