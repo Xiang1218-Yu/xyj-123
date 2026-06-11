@@ -44,7 +44,6 @@ export default function PetForm() {
   const isEdit = Boolean(id);
 
   const {
-    pets,
     owners,
     addPet,
     updatePet,

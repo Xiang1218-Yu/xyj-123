@@ -86,3 +86,23 @@ export interface FuneralPackage {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Photo {
+  id: string;
+  albumId: string;
+  url: string;
+  note?: string;
+  takenAt?: string;
+  uploadedAt: string;
+}
+
+export interface Album {
+  id: string;
+  petId: string;
+  ownerId: string;
+  title: string;
+  description?: string;
+  coverPhotoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}

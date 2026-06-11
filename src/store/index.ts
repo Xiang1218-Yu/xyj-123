@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -9,7 +9,9 @@ import {
   mockUrns,
   mockReminders,
   mockServiceItems,
-  mockFuneralPackages
+  mockFuneralPackages,
+  mockAlbums,
+  mockPhotos
 } from '../data/mockData';
 
 interface AppState {
@@ -21,6 +23,8 @@ interface AppState {
   reminders: Reminder[];
   serviceItems: ServiceItem[];
   funeralPackages: FuneralPackage[];
+  albums: Album[];
+  photos: Photo[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -62,6 +66,19 @@ interface AppState {
   deleteFuneralPackage: (id: string) => void;
   getFuneralPackageById: (id: string) => FuneralPackage | undefined;
   calculatePackagePrice: (pkg: FuneralPackage) => number;
+
+  addAlbum: (album: Omit<Album, 'id' | 'createdAt' | 'updatedAt'>) => Album;
+  updateAlbum: (id: string, data: Partial<Album>) => void;
+  deleteAlbum: (id: string) => void;
+  getAlbumById: (id: string) => Album | undefined;
+  getAlbumsByPetId: (petId: string) => Album[];
+  getAlbumsByOwnerId: (ownerId: string) => Album[];
+
+  addPhoto: (photo: Omit<Photo, 'id' | 'uploadedAt'>) => Photo;
+  updatePhoto: (id: string, data: Partial<Photo>) => void;
+  deletePhoto: (id: string) => void;
+  getPhotoById: (id: string) => Photo | undefined;
+  getPhotosByAlbumId: (albumId: string) => Photo[];
 }
 
 const generateId = (prefix: string) =>
@@ -78,6 +95,8 @@ export const useAppStore = create<AppState>()(
       reminders: mockReminders,
       serviceItems: mockServiceItems,
       funeralPackages: mockFuneralPackages,
+      albums: mockAlbums,
+      photos: mockPhotos,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -244,7 +263,67 @@ export const useAppStore = create<AppState>()(
           }
         });
         return total;
-      }
+      },
+
+      addAlbum: (album) => {
+        const now = new Date().toISOString();
+        const newAlbum: Album = {
+          ...album,
+          id: generateId('album'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          albums: [...state.albums, newAlbum]
+        }));
+        return newAlbum;
+      },
+      updateAlbum: (id, data) =>
+        set((state) => ({
+          albums: state.albums.map((a) =>
+            a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a
+          )
+        })),
+      deleteAlbum: (id) => {
+        set((state) => ({
+          albums: state.albums.filter((a) => a.id !== id),
+          photos: state.photos.filter((p) => p.albumId !== id)
+        }));
+      },
+      getAlbumById: (id) => get().albums.find((a) => a.id === id),
+      getAlbumsByPetId: (petId) => get().albums.filter((a) => a.petId === petId),
+      getAlbumsByOwnerId: (ownerId) => get().albums.filter((a) => a.ownerId === ownerId),
+
+      addPhoto: (photo) => {
+        const newPhoto: Photo = {
+          ...photo,
+          id: generateId('photo'),
+          uploadedAt: new Date().toISOString()
+        };
+        set((state) => ({
+          photos: [...state.photos, newPhoto]
+        }));
+        return newPhoto;
+      },
+      updatePhoto: (id, data) =>
+        set((state) => ({
+          photos: state.photos.map((p) =>
+            p.id === id ? { ...p, ...data } : p
+          )
+        })),
+      deletePhoto: (id) =>
+        set((state) => ({
+          photos: state.photos.filter((p) => p.id !== id)
+        })),
+      getPhotoById: (id) => get().photos.find((p) => p.id === id),
+      getPhotosByAlbumId: (albumId) =>
+        get().photos
+          .filter((p) => p.albumId === albumId)
+          .sort((a, b) => {
+            const dateA = a.takenAt ?? a.uploadedAt;
+            const dateB = b.takenAt ?? b.uploadedAt;
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+          })
     }),
     {
       name: 'xyj-123-storage',
@@ -256,7 +335,9 @@ export const useAppStore = create<AppState>()(
         urns: state.urns,
         reminders: state.reminders,
         serviceItems: state.serviceItems,
-        funeralPackages: state.funeralPackages
+        funeralPackages: state.funeralPackages,
+        albums: state.albums,
+        photos: state.photos
       })
     }
   )

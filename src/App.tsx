@@ -13,6 +13,9 @@ import ReminderList from "@/pages/ReminderList";
 import AppointmentBooking from "@/pages/AppointmentBooking";
 import PackageList from "@/pages/PackageList";
 import PackageForm from "@/pages/PackageForm";
+import AlbumList from "@/pages/AlbumList";
+import AlbumDetail from "@/pages/AlbumDetail";
+import AlbumForm from "@/pages/AlbumForm";
 
 export default function App() {
   return (
@@ -35,6 +38,10 @@ export default function App() {
           <Route path="/packages" element={<PackageList />} />
           <Route path="/packages/new" element={<PackageForm />} />
           <Route path="/packages/:id/edit" element={<PackageForm />} />
+          <Route path="/albums" element={<AlbumList />} />
+          <Route path="/albums/new" element={<AlbumForm />} />
+          <Route path="/albums/:id" element={<AlbumDetail />} />
+          <Route path="/albums/:id/edit" element={<AlbumForm />} />
         </Route>
       </Routes>
     </Router>

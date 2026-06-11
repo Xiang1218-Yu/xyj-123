@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -355,5 +355,129 @@ export const mockFuneralPackages: FuneralPackage[] = [
     ],
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z'
+  }
+];
+
+export const mockAlbums: Album[] = [
+  {
+    id: 'album-001',
+    petId: 'pet-001',
+    ownerId: 'owner-001',
+    title: '豆豆的美好回忆',
+    description: '豆豆陪伴我们走过的8年美好时光，每一张照片都是珍贵的回忆。',
+    coverPhotoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20dog%20playing%20in%20a%20sunny%20park%20with%20a%20frisbee%2C%20happy%20expression%2C%20warm%20afternoon%20light&image_size=landscape_16_9',
+    createdAt: '2025-03-16T10:00:00Z',
+    updatedAt: '2025-03-20T14:30:00Z'
+  },
+  {
+    id: 'album-002',
+    petId: 'pet-002',
+    ownerId: 'owner-002',
+    title: '咪咪的日常',
+    description: '记录咪咪生活中的点点滴滴，她永远是我们家的小公主。',
+    coverPhotoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20British%20Shorthair%20cat%20curled%20up%20on%20a%20windowsill%20with%20sunlight%20streaming%20in%2C%20peaceful%20and%20cozy&image_size=landscape_16_9',
+    createdAt: '2025-04-21T09:00:00Z',
+    updatedAt: '2025-05-10T11:20:00Z'
+  },
+  {
+    id: 'album-003',
+    petId: 'pet-003',
+    ownerId: 'owner-001',
+    title: '旺财的忠诚岁月',
+    description: '12年的陪伴，旺财是我们家最忠诚的成员。',
+    coverPhotoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=An%20elderly%20Chinese%20rural%20dog%20sitting%20in%20a%20courtyard%20with%20warm%20sunset%20light%2C%20wise%20and%20gentle%20expression&image_size=landscape_16_9',
+    createdAt: '2025-01-11T08:00:00Z',
+    updatedAt: '2025-02-15T16:45:00Z'
+  }
+];
+
+export const mockPhotos: Photo[] = [
+  {
+    id: 'photo-001',
+    albumId: 'album-001',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20puppy%20sleeping%20in%20a%20cozy%20dog%20bed%20with%20soft%20blankets%2C%20adorable%20and%20peaceful&image_size=landscape_4_3',
+    note: '刚到家的第一天，小小的一只，睡得好香。',
+    takenAt: '2017-05-10',
+    uploadedAt: '2025-03-16T10:05:00Z'
+  },
+  {
+    id: 'photo-002',
+    albumId: 'album-001',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20learning%20to%20sit%20with%20a%20treat%20in%20front%20of%20him%2C%20training%20session%20in%20the%20living%20room&image_size=landscape_4_3',
+    note: '第一次学会坐下，真是聪明的孩子！',
+    takenAt: '2017-06-20',
+    uploadedAt: '2025-03-16T10:10:00Z'
+  },
+  {
+    id: 'photo-003',
+    albumId: 'album-001',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20playing%20fetch%20on%20a%20beautiful%20beach%20at%20sunset%2C%20running%20through%20waves%20happily&image_size=landscape_4_3',
+    note: '第一次去海边玩耍，豆豆玩得特别开心。',
+    takenAt: '2018-08-15',
+    uploadedAt: '2025-03-16T10:15:00Z'
+  },
+  {
+    id: 'photo-004',
+    albumId: 'album-001',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20celebrating%20birthday%20with%20a%20dog-friendly%20cake%2C%20wearing%20a%20party%20hat%2C%20family%20around&image_size=landscape_4_3',
+    note: '5岁生日，全家人一起为豆豆庆祝。',
+    takenAt: '2022-05-10',
+    uploadedAt: '2025-03-17T15:30:00Z'
+  },
+  {
+    id: 'photo-005',
+    albumId: 'album-001',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20senior%20golden%20retriever%20resting%20on%20a%20soft%20couch%20with%20grey%20around%20the%20muzzle%2C%20content%20expression&image_size=landscape_4_3',
+    note: '晚年的豆豆，虽然走不动了，但依然那么温顺可爱。',
+    takenAt: '2025-02-28',
+    uploadedAt: '2025-03-18T09:00:00Z'
+  },
+  {
+    id: 'photo-006',
+    albumId: 'album-002',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20British%20Shorthair%20kitten%20peeking%20from%20behind%20a%20curtain%2C%20curious%20big%20eyes%2C%20playful&image_size=landscape_4_3',
+    note: '刚到家的小咪咪，对一切都充满好奇。',
+    takenAt: '2020-03-15',
+    uploadedAt: '2025-04-21T09:05:00Z'
+  },
+  {
+    id: 'photo-007',
+    albumId: 'album-002',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20British%20Shorthair%20cat%20sitting%20in%20a%20cardboard%20box%2C%20looking%20very%20pleased%20with%20herself&image_size=landscape_4_3',
+    note: '咪咪最喜欢纸箱了，无论多大的盒子都想钻进去。',
+    takenAt: '2021-07-22',
+    uploadedAt: '2025-04-21T09:10:00Z'
+  },
+  {
+    id: 'photo-008',
+    albumId: 'album-002',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20British%20Shorthair%20cat%20napping%20in%20a%20patch%20of%20sunlight%20on%20the%20floor%2C%20completely%20relaxed&image_size=landscape_4_3',
+    note: '晒着太阳睡觉，这是咪咪最幸福的时刻。',
+    takenAt: '2023-11-10',
+    uploadedAt: '2025-04-22T14:20:00Z'
+  },
+  {
+    id: 'photo-009',
+    albumId: 'album-003',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20young%20Chinese%20rural%20dog%20standing%20guard%20at%20the%20door%20of%20a%20country%20house%2C%20alert%20and%20loyal&image_size=landscape_4_3',
+    note: '年轻时的旺财，是我们家最忠实的守护者。',
+    takenAt: '2013-06-01',
+    uploadedAt: '2025-01-11T08:05:00Z'
+  },
+  {
+    id: 'photo-010',
+    albumId: 'album-003',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20Chinese%20rural%20dog%20walking%20with%20his%20owner%20on%20a%20country%20road%20in%20autumn%2C%20leaves%20falling&image_size=landscape_4_3',
+    note: '每天傍晚的散步时光，旺财总是走在我前面。',
+    takenAt: '2018-10-20',
+    uploadedAt: '2025-01-11T08:10:00Z'
+  },
+  {
+    id: 'photo-011',
+    albumId: 'album-003',
+    url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=An%20old%20Chinese%20rural%20dog%20being%20petted%20by%20his%20owner%27s%20hand%2C%20eyes%20closed%20contentedly&image_size=landscape_4_3',
+    note: '晚年的旺财，最喜欢被我摸摸头。',
+    takenAt: '2024-12-25',
+    uploadedAt: '2025-01-12T10:30:00Z'
   }
 ];

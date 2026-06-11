@@ -8,14 +8,11 @@ export default function PetList() {
   const { pets, owners } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const getOwnerById = (ownerId: string) =>
-    owners.find((o) => o.id === ownerId);
-
   const filteredPets = useMemo(() => {
     if (!searchQuery.trim()) return pets;
     const query = searchQuery.toLowerCase();
     return pets.filter((pet) => {
-      const owner = getOwnerById(pet.ownerId);
+      const owner = owners.find((o) => o.id === pet.ownerId);
       return (
         pet.name.toLowerCase().includes(query) ||
         pet.breed.toLowerCase().includes(query) ||
@@ -66,7 +63,7 @@ export default function PetList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredPets.map((pet) => {
-            const owner = getOwnerById(pet.ownerId);
+            const owner = owners.find((o) => o.id === pet.ownerId);
             return (
               <Link
                 key={pet.id}
