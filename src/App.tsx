@@ -21,6 +21,9 @@ import EmployeeList from "@/pages/EmployeeList";
 import ShiftCalendar from "@/pages/ShiftCalendar";
 import LeaveApproval from "@/pages/LeaveApproval";
 import AttendanceStats from "@/pages/AttendanceStats";
+import BreedKnowledge from "@/pages/BreedKnowledge";
+import BreedDetail from "@/pages/BreedDetail";
+import BreedArticleForm from "@/pages/BreedArticleForm";
 
 export default function App() {
   return (
@@ -30,6 +33,10 @@ export default function App() {
         <Route path="/owner-album" element={<OwnerAlbum />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/breeds" element={<BreedKnowledge />} />
+          <Route path="/breeds/:id" element={<BreedDetail />} />
+          <Route path="/breeds/:id/article/new" element={<BreedArticleForm />} />
+          <Route path="/breeds/:id/article/:articleId/edit" element={<BreedArticleForm />} />
           <Route path="/pets" element={<PetList />} />
           <Route path="/pets/:id" element={<PetDetail />} />
           <Route path="/pets/new" element={<PetForm />} />

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -15,7 +15,9 @@ import {
   mockEmployees,
   mockShiftSchedules,
   mockLeaveRequests,
-  mockAttendanceRecords
+  mockAttendanceRecords,
+  mockPetBreeds,
+  mockBreedArticles
 } from '../data/mockData';
 
 interface AppState {
@@ -33,6 +35,10 @@ interface AppState {
   shiftSchedules: ShiftSchedule[];
   leaveRequests: LeaveRequest[];
   attendanceRecords: AttendanceRecord[];
+
+  petBreeds: PetBreed[];
+  breedArticles: BreedArticle[];
+  favoriteBreeds: FavoriteBreed[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -114,6 +120,21 @@ interface AppState {
   getAttendanceByEmployeeAndDate: (employeeId: string, date: string) => AttendanceRecord | undefined;
   hasLeaveConflict: (employeeId: string, date: string) => boolean;
   syncAttendanceFromShifts: () => void;
+
+  addPetBreed: (breed: Omit<PetBreed, 'id' | 'createdAt' | 'updatedAt'>) => PetBreed;
+  updatePetBreed: (id: string, data: Partial<PetBreed>) => void;
+  deletePetBreed: (id: string) => void;
+  getPetBreedById: (id: string) => PetBreed | undefined;
+  getPetBreedsByCategory: (category: PetBreed['category']) => PetBreed[];
+
+  addBreedArticle: (article: Omit<BreedArticle, 'id' | 'createdAt' | 'updatedAt'>) => BreedArticle;
+  updateBreedArticle: (id: string, data: Partial<BreedArticle>) => void;
+  deleteBreedArticle: (id: string) => void;
+  getBreedArticleById: (id: string) => BreedArticle | undefined;
+  getBreedArticlesByBreedId: (breedId: string) => BreedArticle[];
+
+  toggleFavoriteBreed: (breedId: string) => void;
+  isBreedFavorited: (breedId: string) => boolean;
 }
 
 const generateId = (prefix: string) =>
@@ -136,6 +157,9 @@ export const useAppStore = create<AppState>()(
       shiftSchedules: mockShiftSchedules,
       leaveRequests: mockLeaveRequests,
       attendanceRecords: mockAttendanceRecords,
+      petBreeds: mockPetBreeds,
+      breedArticles: mockBreedArticles,
+      favoriteBreeds: [],
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -597,7 +621,83 @@ export const useAppStore = create<AppState>()(
             attendanceRecords: [...state.attendanceRecords, ...recordsToAdd]
           }));
         }
-      }
+      },
+
+      addPetBreed: (breed) => {
+        const now = new Date().toISOString();
+        const newBreed: PetBreed = {
+          ...breed,
+          id: generateId('breed'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          petBreeds: [...state.petBreeds, newBreed]
+        }));
+        return newBreed;
+      },
+      updatePetBreed: (id, data) =>
+        set((state) => ({
+          petBreeds: state.petBreeds.map((b) =>
+            b.id === id ? { ...b, ...data, updatedAt: new Date().toISOString() } : b
+          )
+        })),
+      deletePetBreed: (id) =>
+        set((state) => ({
+          petBreeds: state.petBreeds.filter((b) => b.id !== id),
+          breedArticles: state.breedArticles.filter((a) => a.breedId !== id),
+          favoriteBreeds: state.favoriteBreeds.filter((f) => f.breedId !== id)
+        })),
+      getPetBreedById: (id) => get().petBreeds.find((b) => b.id === id),
+      getPetBreedsByCategory: (category) =>
+        get().petBreeds.filter((b) => b.category === category),
+
+      addBreedArticle: (article) => {
+        const now = new Date().toISOString();
+        const newArticle: BreedArticle = {
+          ...article,
+          id: generateId('article'),
+          createdAt: now,
+          updatedAt: now
+        };
+        set((state) => ({
+          breedArticles: [...state.breedArticles, newArticle]
+        }));
+        return newArticle;
+      },
+      updateBreedArticle: (id, data) =>
+        set((state) => ({
+          breedArticles: state.breedArticles.map((a) =>
+            a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a
+          )
+        })),
+      deleteBreedArticle: (id) =>
+        set((state) => ({
+          breedArticles: state.breedArticles.filter((a) => a.id !== id)
+        })),
+      getBreedArticleById: (id) => get().breedArticles.find((a) => a.id === id),
+      getBreedArticlesByBreedId: (breedId) =>
+        get()
+          .breedArticles.filter((a) => a.breedId === breedId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+
+      toggleFavoriteBreed: (breedId) =>
+        set((state) => {
+          const exists = state.favoriteBreeds.find((f) => f.breedId === breedId);
+          if (exists) {
+            return {
+              favoriteBreeds: state.favoriteBreeds.filter((f) => f.breedId !== breedId)
+            };
+          }
+          return {
+            favoriteBreeds: [
+              ...state.favoriteBreeds,
+              { breedId, favoritedAt: new Date().toISOString() }
+            ]
+          };
+        }),
+      isBreedFavorited: (breedId) =>
+        get().favoriteBreeds.some((f) => f.breedId === breedId)
     }),
     {
       name: 'xyj-123-storage',
@@ -615,7 +715,10 @@ export const useAppStore = create<AppState>()(
         employees: state.employees,
         shiftSchedules: state.shiftSchedules,
         leaveRequests: state.leaveRequests,
-        attendanceRecords: state.attendanceRecords
+        attendanceRecords: state.attendanceRecords,
+        petBreeds: state.petBreeds,
+        breedArticles: state.breedArticles,
+        favoriteBreeds: state.favoriteBreeds
       })
     }
   )
