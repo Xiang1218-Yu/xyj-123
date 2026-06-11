@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -1632,4 +1632,243 @@ export const mockContractTimelines: ContractTimelineEntry[] = [
   { id: 'tl-019', contractId: 'contract-004', action: 'all_signed', description: '合同全部签署完成', operator: '系统', timestamp: '2025-04-22T11:30:05Z' },
   { id: 'tl-020', contractId: 'contract-005', action: 'created', description: '创建骨灰存放合同', operator: '陈志远', timestamp: '2025-04-23T09:00:00Z' },
   { id: 'tl-021', contractId: 'contract-006', action: 'created', description: '创建综合服务合同（草稿）', operator: '赵雅琴', timestamp: '2025-05-06T14:20:00Z' }
+];
+
+export const mockPetLifeStories: PetLifeStory[] = [
+  {
+    id: 'story-001',
+    petId: 'pet-001',
+    ownerId: 'owner-001',
+    title: '豆豆的金色岁月',
+    description: '纪念我的金毛豆豆，陪伴我走过8年美好时光的忠诚伙伴。从毛茸茸的小奶狗到温顺的大暖男，每一段回忆都值得珍藏。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20beautiful%20golden%20retriever%20dog%20with%20wings%20in%20heaven%2C%20peaceful%20and%20warm%20sunset%20light%2C%20angelic%20pet%20memorial&image_size=landscape_16_9',
+    isPublished: true,
+    createdAt: '2025-03-20T10:00:00Z',
+    updatedAt: '2025-04-10T14:30:00Z',
+    nodes: [
+      {
+        id: 'node-001',
+        storyId: 'story-001',
+        title: '豆豆来到我家',
+        content: '2017年5月10日，豆豆第一次来到我们家。小小的一只，蜷缩在纸箱里，眼睛还没完全睁开。那天阳光特别好，我就知道，这个小生命将成为我们家庭的重要一员。给他取名叫"豆豆"，希望他像小豆子一样充满生机。',
+        date: '2017-05-10',
+        type: 'birth',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20tiny%20golden%20retriever%20puppy%20in%20a%20cardboard%20box%2C%20newborn%2C%20eyes%20closed%2C%20soft%20lighting%2C%20heartwarming&image_size=square_hd',
+        sortOrder: 0,
+        createdAt: '2025-03-20T10:00:00Z',
+        updatedAt: '2025-03-20T10:00:00Z'
+      },
+      {
+        id: 'node-002',
+        storyId: 'story-001',
+        title: '第一次学会坐下',
+        content: '经过两周的耐心训练，豆豆终于学会了"坐下"这个指令！当他第一次听到口令后乖乖坐下，摇着尾巴等待奖励时，我激动得差点哭出来。那时候他才两个多月大，真是个聪明的孩子。',
+        date: '2017-06-20',
+        type: 'milestone',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20cute%20golden%20retriever%20puppy%20sitting%20obediently%2C%20looking%20up%20at%20treat%2C%20happy%20expression%2C%20training%20session&image_size=square_hd',
+        sortOrder: 1,
+        createdAt: '2025-03-20T10:10:00Z',
+        updatedAt: '2025-03-20T10:10:00Z'
+      },
+      {
+        id: 'node-003',
+        storyId: 'story-001',
+        title: '第一次去海边',
+        content: '2018年夏天，我们带豆豆去了北戴河。第一次见到大海的豆豆兴奋极了，在沙滩上奔跑，追逐浪花，还第一次尝到了海水的味道（看他皱眉的样子就知道很咸）。那天他玩得特别开心，回家路上在车里睡得呼呼的。',
+        date: '2018-08-15',
+        type: 'memory',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20happy%20golden%20retriever%20playing%20on%20a%20beautiful%20beach%20at%20sunset%2C%20running%20through%20waves%2C%20joyful%20expression&image_size=square_hd',
+        sortOrder: 2,
+        createdAt: '2025-03-20T10:20:00Z',
+        updatedAt: '2025-03-20T10:20:00Z'
+      },
+      {
+        id: 'node-004',
+        storyId: 'story-001',
+        title: '成为守护哥哥',
+        content: '2020年，我的儿子出生了。一开始我们还担心豆豆会嫉妒，没想到他立刻承担起了"守护哥哥"的责任。宝宝哭的时候他会第一个跑过去，宝宝学走路时他会在旁边慢慢跟着，生怕宝宝摔倒。豆豆成了宝宝最忠诚的玩伴和守护者。',
+        date: '2020-03-01',
+        type: 'milestone',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20gentle%20golden%20retriever%20lying%20next%20to%20a%20sleeping%20baby%2C%20protective%20and%20loving%2C%20nursery%20room%2C%20warm%20atmosphere&image_size=square_hd',
+        sortOrder: 3,
+        createdAt: '2025-03-20T10:30:00Z',
+        updatedAt: '2025-03-20T10:30:00Z'
+      },
+      {
+        id: 'node-005',
+        storyId: 'story-001',
+        title: '5岁生日派对',
+        content: '豆豆5岁生日那天，我们邀请了邻居家的狗狗朋友们一起来开派对。有生日蛋糕（狗狗专用的）、有礼物、还有好多零食。豆豆戴着生日帽，虽然有点不自在，但看得出他特别开心。那天拍了好多照片，每张里他都笑着。',
+        date: '2022-05-10',
+        type: 'memory',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20golden%20retriever%20celebrating%20birthday%20with%20dog%20friends%2C%20wearing%20party%20hat%2C%20dog%20cake%2C%20festive%20atmosphere&image_size=square_hd',
+        sortOrder: 4,
+        createdAt: '2025-03-20T10:40:00Z',
+        updatedAt: '2025-03-20T10:40:00Z'
+      },
+      {
+        id: 'node-006',
+        storyId: 'story-001',
+        title: '慢慢变老的豆豆',
+        content: '不知道从什么时候开始，豆豆的嘴边开始长出灰白的毛发，走路也慢了下来。以前能一口气跑几公里，现在走一会儿就要休息。但他看我的眼神还是那么温柔，每次回家他还是会努力摇着尾巴迎接我。我知道，他老了，但对我们的爱永远不会变。',
+        date: '2024-09-01',
+        type: 'growth',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20senior%20golden%20retriever%20with%20grey%20muzzle%2C%20resting%20on%20a%20sunny%20couch%2C%20wise%20and%20gentle%20expression%2C%20peaceful&image_size=square_hd',
+        sortOrder: 5,
+        createdAt: '2025-03-20T10:50:00Z',
+        updatedAt: '2025-03-20T10:50:00Z'
+      },
+      {
+        id: 'node-007',
+        storyId: 'story-001',
+        title: '最后的告别',
+        content: '2025年3月18日，豆豆永远地离开了我们。在他最后的时刻，我们全家人都陪在他身边，轻轻地摸着他的头，告诉他我们有多爱他。他走得很安详，就像睡着了一样。豆豆，谢谢你8年的陪伴，你永远是我们家庭的一员，永远活在我们心中。',
+        date: '2025-03-18',
+        type: 'departure',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20beautiful%20sunset%20over%20ocean%20with%20a%20golden%20light%2C%20peaceful%20and%20serene%2C%20symbolizing%20farewell%20and%20eternal%20peace&image_size=square_hd',
+        sortOrder: 6,
+        createdAt: '2025-03-20T11:00:00Z',
+        updatedAt: '2025-03-20T11:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'story-002',
+    petId: 'pet-003',
+    ownerId: 'owner-001',
+    title: '旺财的忠诚岁月',
+    description: '12年的陪伴，旺财是我们家最忠诚的守护者。从农村到城市，他始终不离不弃，用一生诠释了"忠诚"二字。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20noble%20Chinese%20rural%20dog%20silhouette%20against%20sunset%2C%20loyal%20guardian%2C%20warm%20golden%20light%2C%20memorial&image_size=landscape_16_9',
+    isPublished: true,
+    createdAt: '2025-01-15T10:00:00Z',
+    updatedAt: '2025-02-01T14:30:00Z',
+    nodes: [
+      {
+        id: 'node-008',
+        storyId: 'story-002',
+        title: '捡回家的小奶狗',
+        content: '2013年的一个雨天，我在老家村口发现了瑟瑟发抖的小旺财。他被遗弃在纸箱里，脐带都还没完全脱落。我把他抱回了家，那时候他只有巴掌大。奶奶说他命大，就叫"旺财"吧，希望他能健康长大，给家里带来好运。',
+        date: '2013-06-01',
+        type: 'birth',
+        sortOrder: 0,
+        createdAt: '2025-01-15T10:00:00Z',
+        updatedAt: '2025-01-15T10:00:00Z'
+      },
+      {
+        id: 'node-009',
+        storyId: 'story-002',
+        title: '看家护院的好帮手',
+        content: '旺财慢慢长大，成了我们家最称职的"门卫"。但他从不乱咬人，熟人来了他会摇尾巴，只有陌生人靠近才会警觉地叫几声。村里的人都夸旺财懂事，也再也没有人敢来我家偷鸡摸狗了。',
+        date: '2014-01-01',
+        type: 'growth',
+        sortOrder: 1,
+        createdAt: '2025-01-15T10:10:00Z',
+        updatedAt: '2025-01-15T10:10:00Z'
+      },
+      {
+        id: 'node-010',
+        storyId: 'story-002',
+        title: '陪我度过高考',
+        content: '高三那年，我每晚都学习到很晚。旺财总是静静地趴在我脚边，陪着我熬夜。有时候我太累了趴在桌上睡着，他会用头拱拱我的手，好像在提醒我去床上睡。高考那天，他一路送我到村口，摇着尾巴看着我离开。',
+        date: '2016-06-07',
+        type: 'milestone',
+        sortOrder: 2,
+        createdAt: '2025-01-15T10:20:00Z',
+        updatedAt: '2025-01-15T10:20:00Z'
+      },
+      {
+        id: 'node-011',
+        storyId: 'story-002',
+        title: '跟着我来到城市',
+        content: '大学毕业后我留在了北京工作，最放心不下的就是旺财。犹豫了很久，最后决定把他也接过来。第一次坐长途车的旺财很紧张，但一直乖乖趴在我脚边。到了城市的他很不适应，总是趴在窗边望着老家的方向。过了好几个月，他才慢慢接受了这个新家。',
+        date: '2020-10-01',
+        type: 'milestone',
+        sortOrder: 3,
+        createdAt: '2025-01-15T10:30:00Z',
+        updatedAt: '2025-01-15T10:30:00Z'
+      },
+      {
+        id: 'node-012',
+        storyId: 'story-002',
+        title: '永远的守护者',
+        content: '2025年1月13日，旺财在睡梦中安详地离开了。他活了12岁，对于中华田园犬来说已经算是高寿了。旺财，谢谢你用一生守护我们，从农村的土坯房到城市的高楼，你始终不离不弃。如果有来生，还做我的狗，好吗？',
+        date: '2025-01-13',
+        type: 'departure',
+        sortOrder: 4,
+        createdAt: '2025-01-15T10:40:00Z',
+        updatedAt: '2025-01-15T10:40:00Z'
+      }
+    ]
+  },
+  {
+    id: 'story-003',
+    petId: 'pet-002',
+    ownerId: 'owner-002',
+    title: '咪咪的公主日记',
+    description: '我的小公主咪咪，虽然只有短短5年的陪伴，但每一天都充满了她带来的温暖和欢乐。她永远是我心中最可爱的小公主。',
+    coverImage: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20cute%20British%20Shorthair%20cat%20with%20angel%20wings%20on%20a%20pink%20cloud%2C%20dreamy%20and%20sweet%2C%20pet%20memorial&image_size=landscape_16_9',
+    isPublished: false,
+    createdAt: '2025-04-25T10:00:00Z',
+    updatedAt: '2025-05-05T14:30:00Z',
+    nodes: [
+      {
+        id: 'node-013',
+        storyId: 'story-003',
+        title: '选中了小公主',
+        content: '2020年3月15日，我去猫舍看小猫。一窝小奶猫里，咪咪特别安静，只是用她那双圆圆的大眼睛静静地看着我。当我蹲下来时，她慢慢走过来，用小脑袋蹭了蹭我的手。那一刻我就知道，她就是我要找的猫咪。因为她娇小可爱，我给她取名"咪咪"，我的小公主。',
+        date: '2020-03-15',
+        type: 'birth',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20tiny%20British%20Shorthair%20kitten%20with%20big%20round%20eyes%2C%20peeking%20from%20blanket%2C%20adorable%20and%20sweet&image_size=square_hd',
+        sortOrder: 0,
+        createdAt: '2025-04-25T10:00:00Z',
+        updatedAt: '2025-04-25T10:00:00Z'
+      },
+      {
+        id: 'node-014',
+        storyId: 'story-003',
+        title: '纸箱征服者',
+        content: '咪咪有个奇怪的爱好——不管多大的纸箱，她都想钻进去。快递盒、鞋盒、收纳箱，只要是盒子她都要进去躺一躺。看着她明明很大一只却非要挤进小盒子里，滑稽又可爱。我给她买了豪华猫窝，她却偏偏最爱几块钱的快递盒，真是个节俭的小公主。',
+        date: '2020-07-22',
+        type: 'memory',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20British%20Shorthair%20cat%20sitting%20happily%20in%20a%20too%20small%20cardboard%20box%2C%20silly%20and%20cute&image_size=square_hd',
+        sortOrder: 1,
+        createdAt: '2025-04-25T10:10:00Z',
+        updatedAt: '2025-04-25T10:10:00Z'
+      },
+      {
+        id: 'node-015',
+        storyId: 'story-003',
+        title: '第一次生病',
+        content: '2022年冬天，咪咪突然开始呕吐，还不吃东西。我吓坏了，连夜带她去宠物医院。医生说是尿路感染，需要住院输液。那几天我每天下班都去陪她，她看到我就会虚弱地叫两声。好在治疗及时，一周后她就痊愈了。经过这次，我才意识到她对我有多重要。',
+        date: '2022-12-01',
+        type: 'growth',
+        sortOrder: 2,
+        createdAt: '2025-04-25T10:20:00Z',
+        updatedAt: '2025-04-25T10:20:00Z'
+      },
+      {
+        id: 'node-016',
+        storyId: 'story-003',
+        title: '陪我走过低谷',
+        content: '2023年我经历了一次很严重的失恋，那段时间每天都以泪洗面。咪咪似乎察觉到了我的情绪，平时高傲的她那段时间特别粘人，总是蜷缩在我身边，用头蹭我的脸，好像在安慰我。有她的陪伴，那段最难熬的日子终于慢慢过去了。谢谢你，我的小棉袄。',
+        date: '2023-05-20',
+        type: 'milestone',
+        sortOrder: 3,
+        createdAt: '2025-04-25T10:30:00Z',
+        updatedAt: '2025-04-25T10:30:00Z'
+      },
+      {
+        id: 'node-017',
+        storyId: 'story-003',
+        title: '突然的离别',
+        content: '2025年4月23日，咪咪突发心脏病离开了我。前一天晚上她还好好的，躺在我枕边陪我看剧，没想到第二天早上就...医生说这种病来得很快，她没有受太多痛苦。咪咪，谢谢你5年的陪伴，你永远是我最爱的小公主，在喵星球要继续快乐啊。',
+        date: '2025-04-23',
+        type: 'departure',
+        imageUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20beautiful%20cherry%20blossom%20tree%20with%20pink%20petals%20falling%2C%20gentle%20breeze%2C%20peaceful%20and%20ethereal&image_size=square_hd',
+        sortOrder: 4,
+        createdAt: '2025-04-25T10:40:00Z',
+        updatedAt: '2025-04-25T10:40:00Z'
+      }
+    ]
+  }
 ];

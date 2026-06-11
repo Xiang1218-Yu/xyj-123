@@ -27,6 +27,9 @@ import BreedArticleForm from "@/pages/BreedArticleForm";
 import ContractList from "@/pages/ContractList";
 import ContractForm from "@/pages/ContractForm";
 import ContractDetail from "@/pages/ContractDetail";
+import PetLifeStoryList from "@/pages/PetLifeStoryList";
+import PetLifeStoryEditor from "@/pages/PetLifeStoryEditor";
+import PetLifeStoryView from "@/pages/PetLifeStoryView";
 
 export default function App() {
   return (
@@ -62,6 +65,10 @@ export default function App() {
           <Route path="/albums/new" element={<AlbumForm />} />
           <Route path="/albums/:id" element={<AlbumDetail />} />
           <Route path="/albums/:id/edit" element={<AlbumForm />} />
+          <Route path="/life-stories" element={<PetLifeStoryList />} />
+          <Route path="/life-stories/new" element={<PetLifeStoryEditor />} />
+          <Route path="/life-stories/:id" element={<PetLifeStoryView />} />
+          <Route path="/life-stories/:id/edit" element={<PetLifeStoryEditor />} />
           <Route path="/employees" element={<EmployeeList />} />
           <Route path="/shifts" element={<ShiftCalendar />} />
           <Route path="/leaves" element={<LeaveApproval />} />

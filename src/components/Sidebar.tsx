@@ -15,6 +15,7 @@ import {
   BarChart3,
   BookOpen,
   FileSignature,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/breeds", label: "品种知识库", icon: BookOpen },
   { to: "/pets", label: "宠物档案", icon: PawPrint },
   { to: "/albums", label: "纪念相册", icon: Images },
+  { to: "/life-stories", label: "生命故事", icon: ScrollText },
   { to: "/packages", label: "套餐管理", icon: Package },
   { to: "/contracts", label: "电子合同", icon: FileSignature },
   { to: "/ceremonies", label: "告别仪式", icon: HeartHandshake },

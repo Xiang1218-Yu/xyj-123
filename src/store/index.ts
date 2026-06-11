@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -21,7 +21,8 @@ import {
   mockContractTemplates,
   mockContracts,
   mockContractSignatures,
-  mockContractTimelines
+  mockContractTimelines,
+  mockPetLifeStories
 } from '../data/mockData';
 
 interface AppState {
@@ -48,6 +49,8 @@ interface AppState {
   contracts: Contract[];
   contractSignatures: ContractSignature[];
   contractTimelines: ContractTimelineEntry[];
+
+  petLifeStories: PetLifeStory[];
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -171,6 +174,18 @@ interface AppState {
 
   autoArchiveContract: (contractId: string, operator?: string) => void;
   archiveSignedContractsAutomatically: () => void;
+
+  addPetLifeStory: (story: Omit<PetLifeStory, 'id' | 'createdAt' | 'updatedAt' | 'nodes'> & { nodes?: Omit<StoryNode, 'id' | 'storyId' | 'createdAt' | 'updatedAt'>[] }) => PetLifeStory;
+  updatePetLifeStory: (id: string, data: Partial<Omit<PetLifeStory, 'id' | 'createdAt' | 'updatedAt' | 'nodes'>> & { nodes?: StoryNode[]; updatedAt?: string }) => void;
+  deletePetLifeStory: (id: string) => void;
+  getPetLifeStoryById: (id: string) => PetLifeStory | undefined;
+  getPetLifeStoriesByPetId: (petId: string) => PetLifeStory[];
+  getPetLifeStoriesByOwnerId: (ownerId: string) => PetLifeStory[];
+  searchPetLifeStories: (keyword: string) => PetLifeStory[];
+  addStoryNode: (storyId: string, node: Omit<StoryNode, 'id' | 'storyId' | 'createdAt' | 'updatedAt'>) => StoryNode;
+  updateStoryNode: (storyId: string, nodeId: string, data: Partial<Omit<StoryNode, 'id' | 'storyId' | 'createdAt' | 'updatedAt'>>) => void;
+  deleteStoryNode: (storyId: string, nodeId: string) => void;
+  reorderStoryNodes: (storyId: string, nodes: StoryNode[]) => void;
 }
 
 const generateId = (prefix: string) =>
@@ -200,6 +215,7 @@ export const useAppStore = create<AppState>()(
       contracts: mockContracts,
       contractSignatures: mockContractSignatures,
       contractTimelines: mockContractTimelines,
+      petLifeStories: mockPetLifeStories,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -924,6 +940,98 @@ export const useAppStore = create<AppState>()(
             }
           }
         });
+      },
+
+      addPetLifeStory: (story) => {
+        const now = new Date().toISOString();
+        const newStory: PetLifeStory = {
+          ...story,
+          id: generateId('story'),
+          createdAt: now,
+          updatedAt: now,
+          nodes: (story.nodes || []).map((node, index) => ({
+            ...node,
+            id: generateId('node'),
+            storyId: '',
+            sortOrder: index,
+            createdAt: now,
+            updatedAt: now
+          }))
+        };
+        newStory.nodes = newStory.nodes.map(node => ({ ...node, storyId: newStory.id }));
+        set((state) => ({
+          petLifeStories: [...state.petLifeStories, newStory]
+        }));
+        return newStory;
+      },
+      updatePetLifeStory: (id, data) =>
+        set((state) => ({
+          petLifeStories: state.petLifeStories.map((s) =>
+            s.id === id ? { ...s, ...data, updatedAt: new Date().toISOString() } : s
+          )
+        })),
+      deletePetLifeStory: (id) =>
+        set((state) => ({
+          petLifeStories: state.petLifeStories.filter((s) => s.id !== id)
+        })),
+      getPetLifeStoryById: (id) => get().petLifeStories.find((s) => s.id === id),
+      getPetLifeStoriesByPetId: (petId) =>
+        get().petLifeStories.filter((s) => s.petId === petId),
+      getPetLifeStoriesByOwnerId: (ownerId) =>
+        get().petLifeStories.filter((s) => s.ownerId === ownerId),
+      searchPetLifeStories: (keyword) => {
+        const stories = get().petLifeStories;
+        const pets = get().pets;
+        return stories.filter((story) => {
+          const pet = pets.find((p) => p.id === story.petId);
+          const petName = pet?.name || '';
+          return (
+            story.title.toLowerCase().includes(keyword.toLowerCase()) ||
+            story.description.toLowerCase().includes(keyword.toLowerCase()) ||
+            petName.toLowerCase().includes(keyword.toLowerCase())
+          );
+        });
+      },
+      addStoryNode: (storyId, node) => {
+        const now = new Date().toISOString();
+        const story = get().getPetLifeStoryById(storyId);
+        if (!story) throw new Error('Story not found');
+        const newNode: StoryNode = {
+          ...node,
+          id: generateId('node'),
+          storyId,
+          createdAt: now,
+          updatedAt: now
+        };
+        const updatedNodes = [...story.nodes, newNode].sort((a, b) => a.sortOrder - b.sortOrder);
+        get().updatePetLifeStory(storyId, { nodes: updatedNodes, updatedAt: now });
+        return newNode;
+      },
+      updateStoryNode: (storyId, nodeId, data) => {
+        const now = new Date().toISOString();
+        const story = get().getPetLifeStoryById(storyId);
+        if (!story) throw new Error('Story not found');
+        const updatedNodes = story.nodes.map((n) =>
+          n.id === nodeId ? { ...n, ...data, updatedAt: now } : n
+        );
+        get().updatePetLifeStory(storyId, { nodes: updatedNodes, updatedAt: now });
+      },
+      deleteStoryNode: (storyId, nodeId) => {
+        const now = new Date().toISOString();
+        const story = get().getPetLifeStoryById(storyId);
+        if (!story) throw new Error('Story not found');
+        const updatedNodes = story.nodes
+          .filter((n) => n.id !== nodeId)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((n, index) => ({ ...n, sortOrder: index }));
+        get().updatePetLifeStory(storyId, { nodes: updatedNodes, updatedAt: now });
+      },
+      reorderStoryNodes: (storyId, nodes) => {
+        const now = new Date().toISOString();
+        const reorderedNodes = nodes
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((n, index) => ({ ...n, sortOrder: index, updatedAt: now }));
+        get().updatePetLifeStory(storyId, { nodes: reorderedNodes, updatedAt: now });
       }
     }),
     {
@@ -949,7 +1057,8 @@ export const useAppStore = create<AppState>()(
         contractTemplates: state.contractTemplates,
         contracts: state.contracts,
         contractSignatures: state.contractSignatures,
-        contractTimelines: state.contractTimelines
+        contractTimelines: state.contractTimelines,
+        petLifeStories: state.petLifeStories
       })
     }
   )

@@ -317,3 +317,49 @@ export interface Contract {
   createdAt: string;
   updatedAt: string;
 }
+
+export type StoryNodeType = 'birth' | 'growth' | 'milestone' | 'memory' | 'departure' | 'other';
+
+export const StoryNodeTypeLabel: Record<StoryNodeType, string> = {
+  birth: '诞生',
+  growth: '成长',
+  milestone: '里程碑',
+  memory: '珍贵回忆',
+  departure: '离别',
+  other: '其他'
+};
+
+export const StoryNodeTypeColor: Record<StoryNodeType, string> = {
+  birth: 'bg-pink-500',
+  growth: 'bg-green-500',
+  milestone: 'bg-blue-500',
+  memory: 'bg-amber-500',
+  departure: 'bg-slate-500',
+  other: 'bg-purple-500'
+};
+
+export interface StoryNode {
+  id: string;
+  storyId: string;
+  title: string;
+  content: string;
+  date: string;
+  type: StoryNodeType;
+  imageUrl?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PetLifeStory {
+  id: string;
+  petId: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  coverImage?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+  nodes: StoryNode[];
+}
