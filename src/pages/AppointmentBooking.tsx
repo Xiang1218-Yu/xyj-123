@@ -242,11 +242,26 @@ export default function AppointmentBooking() {
                formData.ownerName.trim() && formData.ownerPhone.trim() && formData.ownerEmail.trim();
       case 2:
         return formData.packageId !== null;
-      case 3:
-        return formData.expectedDate && formData.expectedTimeSlot;
+      case 3: {
+        if (!formData.expectedDate || !formData.expectedTimeSlot) return false;
+        const locked = isTimeSlotLocked(formData.expectedDate, formData.expectedTimeSlot);
+        const conflict = checkAppointmentConflict(formData.expectedDate, formData.expectedTimeSlot);
+        return !locked && !conflict;
+      }
       default:
         return false;
     }
+  };
+
+  const isTimeSlotBlocked = (): { blocked: boolean; reason: string | null } => {
+    if (!formData.expectedDate || !formData.expectedTimeSlot) return { blocked: false, reason: null };
+    if (isTimeSlotLocked(formData.expectedDate, formData.expectedTimeSlot)) {
+      return { blocked: true, reason: '该时间段已被管理员锁定，无法预约。请选择其他时间。' };
+    }
+    if (checkAppointmentConflict(formData.expectedDate, formData.expectedTimeSlot)) {
+      return { blocked: true, reason: '该时间段已有其他预约，存在时间冲突。请选择其他时间。' };
+    }
+    return { blocked: false, reason: null };
   };
 
   const nextStep = () => {
@@ -920,18 +935,23 @@ export default function AppointmentBooking() {
           )}
 
           <div className="flex justify-between mt-10 pt-6 border-t border-primary-100">
-            {conflictWarning && (
-              <div className="flex-1 mr-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {conflictWarning}
-                </p>
-              </div>
-            )}
+            {(() => {
+              const blockedInfo = currentStep === 3 ? isTimeSlotBlocked() : { blocked: false, reason: null };
+              const warningText = conflictWarning || blockedInfo.reason;
+              if (!warningText) return null;
+              return (
+                <div className="flex-1 mr-4 p-3 bg-red-50 border border-red-200 rounded-xl self-center">
+                  <p className="text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {warningText}
+                  </p>
+                </div>
+              );
+            })()}
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
-              className="btn-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-secondary disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
             >
               <ChevronLeft className="w-5 h-5 mr-1" />
               上一步

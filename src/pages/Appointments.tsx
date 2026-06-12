@@ -55,6 +55,21 @@ export default function Appointments() {
   const [showChangeLog, setShowChangeLog] = useState<string | null>(null);
   const [changeLogs, setChangeLogs] = useState<AppointmentChangeLog[]>([]);
 
+  const [confirmAddLock, setConfirmAddLock] = useState<{
+    show: boolean;
+    date: string;
+    timeSlot: string;
+    reason: string;
+  }>({ show: false, date: '', timeSlot: '', reason: '' });
+
+  const [confirmRemoveLock, setConfirmRemoveLock] = useState<{
+    show: boolean;
+    lockId: string;
+    date: string;
+    timeSlot: string;
+    reason: string;
+  }>({ show: false, lockId: '', date: '', timeSlot: '', reason: '' });
+
   const timeSlotOptions = [
     '09:00 - 10:30',
     '10:30 - 12:00',
@@ -138,15 +153,34 @@ export default function Appointments() {
       alert('该时间段已有预约，无法锁定。请先调整预约时间。');
       return;
     }
-    addTimeSlotLock({
+    setConfirmAddLock({
+      show: true,
       date: lockDate,
       timeSlot: lockTimeSlot,
-      reason: lockReason.trim(),
+      reason: lockReason.trim()
+    });
+  };
+
+  const confirmExecuteAddLock = () => {
+    addTimeSlotLock({
+      date: confirmAddLock.date,
+      timeSlot: confirmAddLock.timeSlot,
+      reason: confirmAddLock.reason,
       lockedBy: '管理员'
     });
     setLockDate('');
     setLockTimeSlot('');
     setLockReason('');
+    setConfirmAddLock({ show: false, date: '', timeSlot: '', reason: '' });
+  };
+
+  const handleRemoveLock = (lockId: string, date: string, timeSlot: string, reason: string) => {
+    setConfirmRemoveLock({ show: true, lockId, date, timeSlot, reason });
+  };
+
+  const confirmExecuteRemoveLock = () => {
+    removeTimeSlotLock(confirmRemoveLock.lockId);
+    setConfirmRemoveLock({ show: false, lockId: '', date: '', timeSlot: '', reason: '' });
   };
 
   const handleViewChangeLog = (ceremonyId: string) => {
@@ -338,7 +372,7 @@ export default function Appointments() {
                       <td className="px-4 py-3 text-sm text-neutral-muted">{formatDateTime(lock.lockedAt)}</td>
                       <td className="px-4 py-3">
                         <button
-                          onClick={() => removeTimeSlotLock(lock.id)}
+                          onClick={() => handleRemoveLock(lock.id, lock.date, lock.timeSlot, lock.reason)}
                           className="text-red-500 hover:text-red-700 transition-colors"
                           title="解除锁定"
                         >
@@ -761,6 +795,104 @@ export default function Appointments() {
                 className="btn-primary"
               >
                 关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmAddLock.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-serif text-xl font-bold text-neutral-text mb-1">确认锁定时段？</h3>
+                  <p className="text-sm text-neutral-muted">
+                    锁定后，主人将无法在该时段提交预约。
+                  </p>
+                </div>
+              </div>
+              <div className="bg-primary-50 rounded-xl p-4 space-y-2 mb-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">锁定日期</span>
+                  <span className="font-medium text-neutral-text">{confirmAddLock.date}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">时间段</span>
+                  <span className="font-medium text-neutral-text">{confirmAddLock.timeSlot}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">原因</span>
+                  <span className="font-medium text-neutral-text text-right max-w-[60%]">{confirmAddLock.reason}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-shrink-0 p-4 border-t border-primary-100 bg-primary-50/50 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmAddLock({ show: false, date: '', timeSlot: '', reason: '' })}
+                className="btn-secondary"
+              >
+                  取消
+                </button>
+              <button
+                onClick={confirmExecuteAddLock}
+                className="btn-accent"
+              >
+                <Lock className="w-4 h-4 mr-1" />
+                确认锁定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmRemoveLock.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-serif text-xl font-bold text-neutral-text mb-1">确认解除锁定？</h3>
+                  <p className="text-sm text-neutral-muted">
+                    解除后，主人将可以重新预约该时段。
+                  </p>
+                </div>
+              </div>
+              <div className="bg-red-50 rounded-xl p-4 space-y-2 mb-2 border border-red-100">
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">锁定日期</span>
+                  <span className="font-medium text-neutral-text">{confirmRemoveLock.date}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">时间段</span>
+                  <span className="font-medium text-neutral-text">{confirmRemoveLock.timeSlot}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-muted">锁定原因</span>
+                  <span className="font-medium text-neutral-text text-right max-w-[60%]">{confirmRemoveLock.reason}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-shrink-0 p-4 border-t border-primary-100 bg-primary-50/50 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmRemoveLock({ show: false, lockId: '', date: '', timeSlot: '', reason: '' })}
+                className="btn-secondary"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmExecuteRemoveLock}
+                className="btn-primary bg-red-500 hover:bg-red-600 border-red-500 hover:border-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                确认解除
               </button>
             </div>
           </div>
