@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, CeremonyTemplate, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order, Furnace, FurnaceMaintenance, FurnaceCremationProcess, MemorialRecord } from '../shared/types';
+import type { Owner, Pet, Ceremony, CeremonyTemplate, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order, Furnace, FurnaceMaintenance, FurnaceCremationProcess, MemorialRecord, TimeSlotLock, AppointmentChangeLog } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -2384,5 +2384,91 @@ export const mockFurnaceProcesses: FurnaceCremationProcess[] = [
     notes: '萨摩耶，体重约28kg，预计恒温1.5小时',
     createdAt: '2025-06-11T09:00:00Z',
     updatedAt: '2025-06-11T10:30:00Z'
+  }
+];
+
+export const mockTimeSlotLocks: TimeSlotLock[] = [
+  {
+    id: 'lock-001',
+    date: '2025-06-15',
+    timeSlot: '09:00 - 10:30',
+    reason: '设备检修，暂停预约',
+    lockedBy: '孙丽华',
+    lockedAt: '2025-06-10T09:00:00Z'
+  },
+  {
+    id: 'lock-002',
+    date: '2025-06-15',
+    timeSlot: '10:30 - 12:00',
+    reason: '全员培训，暂停预约',
+    lockedBy: '孙丽华',
+    lockedAt: '2025-06-10T09:05:00Z'
+  }
+];
+
+export const mockAppointmentChangeLogs: AppointmentChangeLog[] = [
+  {
+    id: 'alog-001',
+    ceremonyId: 'ceremony-001',
+    action: 'created',
+    description: '创建预约，套餐：臻爱尊享套餐',
+    operator: '张明华',
+    timestamp: '2025-03-15T10:30:00Z'
+  },
+  {
+    id: 'alog-002',
+    ceremonyId: 'ceremony-001',
+    action: 'status_changed',
+    description: '预约状态从"待开始"变更为"进行中"',
+    oldValue: 'pending',
+    newValue: 'in-progress',
+    operator: '系统',
+    timestamp: '2025-03-18T10:00:00Z'
+  },
+  {
+    id: 'alog-003',
+    ceremonyId: 'ceremony-001',
+    action: 'status_changed',
+    description: '预约状态从"进行中"变更为"已完成"',
+    oldValue: 'in-progress',
+    newValue: 'completed',
+    operator: '系统',
+    timestamp: '2025-03-18T12:00:00Z'
+  },
+  {
+    id: 'alog-004',
+    ceremonyId: 'ceremony-002',
+    action: 'created',
+    description: '创建预约，套餐：温馨基础套餐',
+    operator: '张明华',
+    timestamp: '2025-01-11T09:00:00Z'
+  },
+  {
+    id: 'alog-005',
+    ceremonyId: 'ceremony-002',
+    action: 'status_changed',
+    description: '预约状态从"待开始"变更为"进行中"',
+    oldValue: 'pending',
+    newValue: 'in-progress',
+    operator: '系统',
+    timestamp: '2025-01-13T14:30:00Z'
+  },
+  {
+    id: 'alog-006',
+    ceremonyId: 'ceremony-002',
+    action: 'status_changed',
+    description: '预约状态从"进行中"变更为"已完成"',
+    oldValue: 'in-progress',
+    newValue: 'completed',
+    operator: '系统',
+    timestamp: '2025-01-13T17:00:00Z'
+  },
+  {
+    id: 'alog-007',
+    ceremonyId: 'ceremony-003',
+    action: 'created',
+    description: '创建预约，套餐：简约环保套餐',
+    operator: '李小红',
+    timestamp: '2025-04-22T15:00:00Z'
   }
 ];

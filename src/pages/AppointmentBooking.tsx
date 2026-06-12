@@ -88,6 +88,7 @@ export default function AppointmentBooking() {
     time: string;
     bookingId: string;
   } | null>(null);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   const {
     addPet,
@@ -97,7 +98,10 @@ export default function AppointmentBooking() {
     funeralPackages,
     serviceItems,
     calculatePackagePrice,
-    getFuneralPackageById
+    getFuneralPackageById,
+    isTimeSlotLocked,
+    checkAppointmentConflict,
+    timeSlotLocks
   } = useAppStore();
 
   const updateForm = (key: keyof FormData, value: string | null) => {
@@ -108,6 +112,9 @@ export default function AppointmentBooking() {
         delete newErrors[key];
         return newErrors;
       });
+    }
+    if (key === 'expectedDate' || key === 'expectedTimeSlot') {
+      setConflictWarning(null);
     }
   };
 
@@ -154,60 +161,78 @@ export default function AppointmentBooking() {
   const handleSubmit = () => {
     if (!validateStep3()) return;
 
-    const newOwner = addOwner({
-      name: formData.ownerName,
-      phone: formData.ownerPhone,
-      email: formData.ownerEmail
-    });
-
-    const newPet = addPet({
-      name: formData.petName,
-      breed: formData.petBreed,
-      age: formData.petAge,
-      gender: 'male',
-      photoUrl: '',
-      ownerId: newOwner.id,
-      createdAt: new Date().toISOString(),
-      notes: formData.notes
-    });
-
-    let bookingId = '';
-    const selectedPackage = getFuneralPackageById(formData.packageId!);
-    const packageName = selectedPackage?.name ?? '未知套餐';
-
-    const newCeremony = addCeremony({
-      petId: newPet.id,
-      ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
-      location: `${packageName}（待分配场地）`,
-      participants: '待确认',
-      status: 'pending',
-      notes: formData.notes,
-      packageId: formData.packageId!
-    });
-    bookingId = newCeremony.id;
-
-    if (selectedPackage) {
-      const hasCremation = selectedPackage.serviceItems.some(
-        (psi) => psi.included && serviceItems.find((s) => s.id === psi.serviceItemId)?.category === 'cremation'
-      );
-      if (hasCremation) {
-        addCremation({
-          petId: newPet.id,
-          cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
-          furnaceId: '待分配',
-          status: 'pending'
-        });
+    if (formData.expectedDate && formData.expectedTimeSlot) {
+      if (isTimeSlotLocked(formData.expectedDate, formData.expectedTimeSlot)) {
+        setConflictWarning('该时间段已被管理员锁定，无法预约。请选择其他时间。');
+        return;
+      }
+      const conflict = checkAppointmentConflict(formData.expectedDate, formData.expectedTimeSlot);
+      if (conflict) {
+        setConflictWarning('该时间段已有其他预约，存在时间冲突。请选择其他时间。');
+        return;
       }
     }
+    setConflictWarning(null);
 
-    setSubmittedInfo({
-      petName: formData.petName,
-      date: formData.expectedDate,
-      time: formData.expectedTimeSlot,
-      bookingId
-    });
+    try {
+      const newOwner = addOwner({
+        name: formData.ownerName,
+        phone: formData.ownerPhone,
+        email: formData.ownerEmail
+      });
 
-    setSubmitted(true);
+      const newPet = addPet({
+        name: formData.petName,
+        breed: formData.petBreed,
+        age: formData.petAge,
+        gender: 'male',
+        photoUrl: '',
+        ownerId: newOwner.id,
+        createdAt: new Date().toISOString(),
+        notes: formData.notes
+      });
+
+      let bookingId = '';
+      const selectedPackage = getFuneralPackageById(formData.packageId!);
+      const packageName = selectedPackage?.name ?? '未知套餐';
+
+      const newCeremony = addCeremony({
+        petId: newPet.id,
+        ceremonyTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
+        location: `${packageName}（待分配场地）`,
+        participants: '待确认',
+        status: 'pending',
+        notes: formData.notes,
+        packageId: formData.packageId!
+      });
+      bookingId = newCeremony.id;
+
+      if (selectedPackage) {
+        const hasCremation = selectedPackage.serviceItems.some(
+          (psi) => psi.included && serviceItems.find((s) => s.id === psi.serviceItemId)?.category === 'cremation'
+        );
+        if (hasCremation) {
+          addCremation({
+            petId: newPet.id,
+            cremationTime: `${formData.expectedDate}T${formData.expectedTimeSlot.split(' ')[0]}:00`,
+            furnaceId: '待分配',
+            status: 'pending'
+          });
+        }
+      }
+
+      setSubmittedInfo({
+        petName: formData.petName,
+        date: formData.expectedDate,
+        time: formData.expectedTimeSlot,
+        bookingId
+      });
+
+      setSubmitted(true);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '提交预约失败，请稍后重试';
+      setConflictWarning(message);
+    }
   };
 
   const canProceed = () => {
@@ -247,6 +272,7 @@ export default function AppointmentBooking() {
     setCurrentStep(1);
     setFormData(initialFormData);
     setFormErrors(initialFormErrors);
+    setConflictWarning(null);
   };
 
   if (submitted && submittedInfo) {
@@ -693,24 +719,55 @@ export default function AppointmentBooking() {
                     期望时间段 *
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {timeSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        onClick={() => updateForm('expectedTimeSlot', slot)}
-                        className={`py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
-                          formData.expectedTimeSlot === slot
-                            ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md'
-                            : 'bg-primary-50 text-neutral-text border border-primary-200 hover:bg-primary-100'
-                        }`}
-                      >
-                        {slot}
-                      </button>
-                    ))}
+                    {timeSlots.map((slot) => {
+                      const isLocked = formData.expectedDate ? isTimeSlotLocked(formData.expectedDate, slot) : false;
+                      const hasConflict = formData.expectedDate ? !!checkAppointmentConflict(formData.expectedDate, slot) : false;
+                      const isDisabled = isLocked || hasConflict;
+                      return (
+                        <div key={slot} className="relative">
+                          <button
+                            onClick={() => !isDisabled && updateForm('expectedTimeSlot', slot)}
+                            disabled={isDisabled}
+                            className={`w-full py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
+                              isLocked
+                                ? 'bg-red-50 text-red-400 border border-red-200 cursor-not-allowed line-through'
+                                : hasConflict
+                                ? 'bg-amber-50 text-amber-500 border border-amber-200 cursor-not-allowed'
+                                : formData.expectedTimeSlot === slot
+                                ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md'
+                                : 'bg-primary-50 text-neutral-text border border-primary-200 hover:bg-primary-100'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                          {isLocked && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">已锁定</span>
+                          )}
+                          {hasConflict && !isLocked && (
+                            <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full">已预约</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   {formErrors.expectedTimeSlot && (
                     <p className="mt-2 text-xs text-red-500 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> {formErrors.expectedTimeSlot}
                     </p>
+                  )}
+                  {formData.expectedDate && timeSlotLocks.filter((l) => l.date === formData.expectedDate).length > 0 && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-xs text-red-600 font-medium flex items-center gap-1 mb-1">
+                        <AlertCircle className="w-3.5 h-3.5" /> 该日期有锁定时段
+                      </p>
+                      {timeSlotLocks
+                        .filter((l) => l.date === formData.expectedDate)
+                        .map((l) => (
+                          <p key={l.id} className="text-xs text-red-500 ml-5">
+                            {l.timeSlot}：{l.reason}
+                          </p>
+                        ))}
+                    </div>
                   )}
                 </div>
 
@@ -863,6 +920,14 @@ export default function AppointmentBooking() {
           )}
 
           <div className="flex justify-between mt-10 pt-6 border-t border-primary-100">
+            {conflictWarning && (
+              <div className="flex-1 mr-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {conflictWarning}
+                </p>
+              </div>
+            )}
             <button
               onClick={prevStep}
               disabled={currentStep === 1}

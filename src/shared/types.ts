@@ -615,6 +615,45 @@ export interface OrderPlacementPhoto {
   takenAt: string;
 }
 
+export interface TimeSlotLock {
+  id: string;
+  date: string;
+  timeSlot: string;
+  reason: string;
+  lockedBy: string;
+  lockedAt: string;
+}
+
+export type AppointmentChangeAction =
+  | 'created'
+  | 'time_changed'
+  | 'status_changed'
+  | 'package_changed'
+  | 'notes_changed'
+  | 'cancelled'
+  | 'other';
+
+export const AppointmentChangeActionLabel: Record<AppointmentChangeAction, string> = {
+  created: '预约创建',
+  time_changed: '时间变更',
+  status_changed: '状态变更',
+  package_changed: '套餐变更',
+  notes_changed: '备注变更',
+  cancelled: '预约取消',
+  other: '其他变更',
+};
+
+export interface AppointmentChangeLog {
+  id: string;
+  ceremonyId: string;
+  action: AppointmentChangeAction;
+  description: string;
+  oldValue?: string;
+  newValue?: string;
+  operator: string;
+  timestamp: string;
+}
+
 export interface Order {
   id: string;
   orderNo: string;

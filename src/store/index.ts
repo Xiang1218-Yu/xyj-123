@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem, Furnace, FurnaceMaintenance, FurnaceCremationProcess, CremationProcessStage, TemperaturePoint, MemorialRecord, MemorialActionType, StorageType } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem, Furnace, FurnaceMaintenance, FurnaceCremationProcess, CremationProcessStage, TemperaturePoint, MemorialRecord, MemorialActionType, StorageType, TimeSlotLock, AppointmentChangeLog, AppointmentChangeAction } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -29,7 +29,9 @@ import {
   mockFurnaces,
   mockFurnaceMaintenances,
   mockFurnaceProcesses,
-  mockMemorialRecords
+  mockMemorialRecords,
+  mockTimeSlotLocks,
+  mockAppointmentChangeLogs
 } from '../data/mockData';
 
 interface AppState {
@@ -62,6 +64,19 @@ interface AppState {
   memorialProducts: MemorialProduct[];
   cartItems: CartItem[];
   memorialOrders: Order[];
+
+  timeSlotLocks: TimeSlotLock[];
+  appointmentChangeLogs: AppointmentChangeLog[];
+
+  addTimeSlotLock: (lock: Omit<TimeSlotLock, 'id' | 'lockedAt'>) => TimeSlotLock;
+  removeTimeSlotLock: (id: string) => void;
+  isTimeSlotLocked: (date: string, timeSlot: string) => boolean;
+  getLocksByDate: (date: string) => TimeSlotLock[];
+
+  addAppointmentChangeLog: (log: Omit<AppointmentChangeLog, 'id' | 'timestamp'>) => AppointmentChangeLog;
+  getChangeLogsByCeremonyId: (ceremonyId: string) => AppointmentChangeLog[];
+
+  checkAppointmentConflict: (date: string, timeSlot: string, excludeCeremonyId?: string) => Ceremony | null;
 
   addOwner: (owner: Omit<Owner, 'id'>) => Owner;
   updateOwner: (id: string, data: Partial<Owner>) => void;
@@ -256,6 +271,19 @@ interface AppState {
 const generateId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+const timeSlots = [
+  '09:00 - 10:30',
+  '10:30 - 12:00',
+  '14:00 - 15:30',
+  '15:30 - 17:00',
+  '17:00 - 18:30'
+];
+
+const parseTimeToMinutes = (time: string): number => {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -289,6 +317,8 @@ export const useAppStore = create<AppState>()(
       furnaces: mockFurnaces,
       furnaceMaintenances: mockFurnaceMaintenances,
       furnaceProcesses: mockFurnaceProcesses,
+      timeSlotLocks: mockTimeSlotLocks,
+      appointmentChangeLogs: mockAppointmentChangeLogs,
 
       addOwner: (owner) => {
         const newOwner = { ...owner, id: generateId('owner') };
@@ -327,18 +357,95 @@ export const useAppStore = create<AppState>()(
       getPetById: (id) => get().pets.find((p) => p.id === id),
 
       addCeremony: (ceremony) => {
+        const ceremonyDate = ceremony.ceremonyTime.slice(0, 10);
+        const ceremonyHour = ceremony.ceremonyTime.slice(11, 16);
+        const matchedSlot = timeSlots.find((slot) => slot.startsWith(ceremonyHour));
+        if (matchedSlot && get().isTimeSlotLocked(ceremonyDate, matchedSlot)) {
+          throw new Error('该时间段已被管理员锁定，无法预约');
+        }
+        if (matchedSlot) {
+          const conflict = get().checkAppointmentConflict(ceremonyDate, matchedSlot);
+          if (conflict) {
+            throw new Error('该时间段已有预约，存在时间冲突');
+          }
+        }
         const newCeremony = { ...ceremony, id: generateId('ceremony') };
         set((state) => ({
           ceremonies: [...state.ceremonies, newCeremony]
         }));
+        get().addAppointmentChangeLog({
+          ceremonyId: newCeremony.id,
+          action: 'created' as AppointmentChangeAction,
+          description: `创建预约${ceremony.packageId ? '，套餐：' + (get().getFuneralPackageById(ceremony.packageId)?.name ?? '未知') : ''}`,
+          operator: '主人'
+        });
         return newCeremony;
       },
-      updateCeremony: (id, data) =>
+      updateCeremony: (id, data) => {
+        const old = get().getCeremonyById(id);
         set((state) => ({
           ceremonies: state.ceremonies.map((c) =>
             c.id === id ? { ...c, ...data } : c
           )
-        })),
+        }));
+        if (old && data.ceremonyTime && data.ceremonyTime !== old.ceremonyTime) {
+          const oldDate = old.ceremonyTime.slice(0, 10);
+          const oldHour = old.ceremonyTime.slice(11, 16);
+          const newDate = data.ceremonyTime.slice(0, 10);
+          const newHour = data.ceremonyTime.slice(11, 16);
+          const oldSlot = timeSlots.find((s) => s.startsWith(oldHour)) ?? oldHour;
+          const newSlot = timeSlots.find((s) => s.startsWith(newHour)) ?? newHour;
+          get().addAppointmentChangeLog({
+            ceremonyId: id,
+            action: 'time_changed',
+            description: `预约时间从 ${oldDate} ${oldSlot} 变更为 ${newDate} ${newSlot}`,
+            oldValue: `${oldDate} ${oldSlot}`,
+            newValue: `${newDate} ${newSlot}`,
+            operator: '管理员'
+          });
+        }
+        if (old && data.status && data.status !== old.status) {
+          const statusLabel: Record<string, string> = { pending: '待开始', 'in-progress': '进行中', completed: '已完成', cancelled: '已取消' };
+          get().addAppointmentChangeLog({
+            ceremonyId: id,
+            action: data.status === 'cancelled' ? 'cancelled' : 'status_changed',
+            description: `预约状态从"${statusLabel[old.status] ?? old.status}"变更为"${statusLabel[data.status] ?? data.status}"`,
+            oldValue: statusLabel[old.status] ?? old.status,
+            newValue: statusLabel[data.status] ?? data.status,
+            operator: '管理员'
+          });
+        }
+        if (old && data.packageId && data.packageId !== old.packageId) {
+          const oldPkg = old.packageId ? get().getFuneralPackageById(old.packageId)?.name : '无';
+          const newPkg = get().getFuneralPackageById(data.packageId)?.name ?? '未知';
+          get().addAppointmentChangeLog({
+            ceremonyId: id,
+            action: 'package_changed',
+            description: `套餐从"${oldPkg}"变更为"${newPkg}"`,
+            oldValue: oldPkg,
+            newValue: newPkg,
+            operator: '管理员'
+          });
+        }
+        if (old && data.notes !== undefined && data.notes !== old.notes) {
+          get().addAppointmentChangeLog({
+            ceremonyId: id,
+            action: 'notes_changed',
+            description: '备注内容已更新',
+            oldValue: old.notes ?? '',
+            newValue: data.notes ?? '',
+            operator: '管理员'
+          });
+        }
+        if (old && !data.ceremonyTime && !data.status && !data.packageId && data.notes === undefined && Object.keys(data).length > 0) {
+          get().addAppointmentChangeLog({
+            ceremonyId: id,
+            action: 'other',
+            description: '预约信息已更新',
+            operator: '管理员'
+          });
+        }
+      },
       deleteCeremony: (id) =>
         set((state) => ({
           ceremonies: state.ceremonies.filter((c) => c.id !== id)
@@ -1425,6 +1532,62 @@ export const useAppStore = create<AppState>()(
         const updatedHistory = [...process.temperatureHistory, point];
         get().updateFurnaceProcess(processId, { temperatureHistory: updatedHistory });
         get().updateFurnaceTemperature(process.furnaceId, point.temperature);
+      },
+
+      addTimeSlotLock: (lock) => {
+        const newLock: TimeSlotLock = {
+          ...lock,
+          id: generateId('lock'),
+          lockedAt: new Date().toISOString()
+        };
+        set((state) => ({
+          timeSlotLocks: [...state.timeSlotLocks, newLock]
+        }));
+        return newLock;
+      },
+      removeTimeSlotLock: (id) =>
+        set((state) => ({
+          timeSlotLocks: state.timeSlotLocks.filter((l) => l.id !== id)
+        })),
+      isTimeSlotLocked: (date, timeSlot) =>
+        get().timeSlotLocks.some((l) => l.date === date && l.timeSlot === timeSlot),
+      getLocksByDate: (date) =>
+        get().timeSlotLocks.filter((l) => l.date === date),
+
+      addAppointmentChangeLog: (log) => {
+        const newLog: AppointmentChangeLog = {
+          ...log,
+          id: generateId('alog'),
+          timestamp: new Date().toISOString()
+        };
+        set((state) => ({
+          appointmentChangeLogs: [...state.appointmentChangeLogs, newLog]
+        }));
+        return newLog;
+      },
+      getChangeLogsByCeremonyId: (ceremonyId) =>
+        get()
+          .appointmentChangeLogs.filter((l) => l.ceremonyId === ceremonyId)
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+
+      checkAppointmentConflict: (date, timeSlot, excludeCeremonyId) => {
+        const slotStart = timeSlot.split(' - ')[0];
+        const slotEnd = timeSlot.split(' - ')[1];
+        const startTime = parseTimeToMinutes(slotStart);
+        const endTime = parseTimeToMinutes(slotEnd);
+        return get().ceremonies.find((c) => {
+          if (c.status === 'cancelled') return false;
+          if (excludeCeremonyId && c.id === excludeCeremonyId) return false;
+          const cDate = c.ceremonyTime.slice(0, 10);
+          if (cDate !== date) return false;
+          const cHour = c.ceremonyTime.slice(11, 16);
+          const cSlot = timeSlots.find((s) => s.startsWith(cHour));
+          if (cSlot) {
+            return cSlot === timeSlot;
+          }
+          const cStart = parseTimeToMinutes(cHour);
+          return cStart < endTime && cStart >= startTime;
+        }) ?? null;
       }
     }),
     {
@@ -1458,7 +1621,9 @@ export const useAppStore = create<AppState>()(
         memorialOrders: state.memorialOrders,
         furnaces: state.furnaces,
         furnaceMaintenances: state.furnaceMaintenances,
-        furnaceProcesses: state.furnaceProcesses
+        furnaceProcesses: state.furnaceProcesses,
+        timeSlotLocks: state.timeSlotLocks,
+        appointmentChangeLogs: state.appointmentChangeLogs
       })
     }
   )

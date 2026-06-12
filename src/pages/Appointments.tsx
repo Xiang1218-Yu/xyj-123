@@ -18,11 +18,17 @@ import {
   XCircle,
   X,
   Image,
-  DollarSign
+  DollarSign,
+  Lock,
+  Plus,
+  Trash2,
+  History,
+  AlertTriangle
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
-import type { Ceremony, FuneralPackage } from '@/shared/types';
+import type { Ceremony, FuneralPackage, AppointmentChangeLog } from '@/shared/types';
+import { AppointmentChangeActionLabel } from '@/shared/types';
 
 export default function Appointments() {
   const {
@@ -32,11 +38,30 @@ export default function Appointments() {
     cremations,
     funeralPackages,
     serviceItems,
-    calculatePackagePrice
+    calculatePackagePrice,
+    timeSlotLocks,
+    addTimeSlotLock,
+    removeTimeSlotLock,
+    getChangeLogsByCeremonyId,
+    checkAppointmentConflict
   } = useAppStore();
 
   const [expandedCeremonyId, setExpandedCeremonyId] = useState<string | null>(null);
   const [detailPackage, setDetailPackage] = useState<FuneralPackage | null>(null);
+  const [showLockPanel, setShowLockPanel] = useState(false);
+  const [lockDate, setLockDate] = useState('');
+  const [lockTimeSlot, setLockTimeSlot] = useState('');
+  const [lockReason, setLockReason] = useState('');
+  const [showChangeLog, setShowChangeLog] = useState<string | null>(null);
+  const [changeLogs, setChangeLogs] = useState<AppointmentChangeLog[]>([]);
+
+  const timeSlotOptions = [
+    '09:00 - 10:30',
+    '10:30 - 12:00',
+    '14:00 - 15:30',
+    '15:30 - 17:00',
+    '17:00 - 18:30'
+  ];
 
   const getPetById = (id: string) => pets.find(p => p.id === id);
   const getOwnerById = (id: string) => owners.find(o => o.id === id);
@@ -106,6 +131,35 @@ export default function Appointments() {
     setExpandedCeremonyId(prev => prev === id ? null : id);
   };
 
+  const handleAddLock = () => {
+    if (!lockDate || !lockTimeSlot || !lockReason.trim()) return;
+    const conflict = checkAppointmentConflict(lockDate, lockTimeSlot);
+    if (conflict) {
+      alert('该时间段已有预约，无法锁定。请先调整预约时间。');
+      return;
+    }
+    addTimeSlotLock({
+      date: lockDate,
+      timeSlot: lockTimeSlot,
+      reason: lockReason.trim(),
+      lockedBy: '管理员'
+    });
+    setLockDate('');
+    setLockTimeSlot('');
+    setLockReason('');
+  };
+
+  const handleViewChangeLog = (ceremonyId: string) => {
+    if (showChangeLog === ceremonyId) {
+      setShowChangeLog(null);
+      setChangeLogs([]);
+    } else {
+      const logs = getChangeLogsByCeremonyId(ceremonyId);
+      setChangeLogs(logs);
+      setShowChangeLog(ceremonyId);
+    }
+  };
+
   useEffect(() => {
     if (detailPackage) {
       document.body.style.overflow = 'hidden';
@@ -123,15 +177,24 @@ export default function Appointments() {
         title="主人预约"
         description="查看和管理所有主人的预约申请"
         actions={
-          <a
-            href="/booking"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-accent"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            打开预约页面
-          </a>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowLockPanel(!showLockPanel)}
+              className={`btn-secondary flex items-center gap-2 ${showLockPanel ? 'ring-2 ring-primary-400' : ''}`}
+            >
+              <Lock className="w-4 h-4" />
+              时间锁定管理
+            </button>
+            <a
+              href="/booking"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-accent"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              打开预约页面
+            </a>
+          </div>
         }
       />
 
@@ -187,6 +250,114 @@ export default function Appointments() {
           </div>
         </div>
       </div>
+
+      {showLockPanel && (
+        <div className="card border-2 border-primary-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg font-bold text-primary-900 flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary-600" />
+              时间锁定管理
+            </h3>
+            <button onClick={() => setShowLockPanel(false)} className="text-neutral-muted hover:text-neutral-text">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-sm text-neutral-muted mb-4">
+            锁定特定日期的时间段，防止主人在该时段提交预约。适用于设备检修、员工培训等场景。
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+            <div>
+              <label className="label-text">锁定日期 *</label>
+              <input
+                type="date"
+                className="input-field"
+                value={lockDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setLockDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label-text">时间段 *</label>
+              <select
+                className="input-field"
+                value={lockTimeSlot}
+                onChange={(e) => setLockTimeSlot(e.target.value)}
+              >
+                <option value="">请选择</option>
+                {timeSlotOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label-text">锁定原因 *</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="例如：设备检修"
+                value={lockReason}
+                onChange={(e) => setLockReason(e.target.value)}
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={handleAddLock}
+                disabled={!lockDate || !lockTimeSlot || !lockReason.trim()}
+                className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                添加锁定
+              </button>
+            </div>
+          </div>
+
+          {timeSlotLocks.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-primary-200">
+              <table className="w-full">
+                <thead className="bg-primary-50 border-b border-primary-100">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">日期</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">时间段</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">原因</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">锁定人</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">锁定时间</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-primary-800">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-primary-100">
+                  {[...timeSlotLocks].sort((a, b) => {
+                    if (a.date !== b.date) return a.date.localeCompare(b.date);
+                    return a.timeSlot.localeCompare(b.timeSlot);
+                  }).map((lock) => (
+                    <tr key={lock.id} className="hover:bg-primary-50/50">
+                      <td className="px-4 py-3 text-sm text-neutral-text">{lock.date}</td>
+                      <td className="px-4 py-3 text-sm text-neutral-text">{lock.timeSlot}</td>
+                      <td className="px-4 py-3 text-sm text-neutral-text">{lock.reason}</td>
+                      <td className="px-4 py-3 text-sm text-neutral-muted">{lock.lockedBy}</td>
+                      <td className="px-4 py-3 text-sm text-neutral-muted">{formatDateTime(lock.lockedAt)}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => removeTimeSlotLock(lock.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="解除锁定"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-primary-50 rounded-xl">
+              <Lock className="w-8 h-8 mx-auto text-primary-300 mb-2" />
+              <p className="text-neutral-muted text-sm">暂无时间锁定记录</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
@@ -306,15 +477,29 @@ export default function Appointments() {
                           {getStatusBadge(ceremony.status)}
                         </td>
                         <td className="px-6 py-4">
-                          {pet && (
-                            <Link
-                              to={`/pets/${pet.id}`}
-                              className="inline-flex items-center text-sm text-primary-700 hover:text-primary-900 font-medium"
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => handleViewChangeLog(ceremony.id)}
+                              className={`inline-flex items-center text-sm font-medium transition-colors ${
+                                showChangeLog === ceremony.id
+                                  ? 'text-primary-900'
+                                  : 'text-primary-700 hover:text-primary-900'
+                              }`}
+                              title="查看变更记录"
                             >
-                              查看详情
-                              <ChevronRight className="w-4 h-4" />
-                            </Link>
-                          )}
+                              <History className="w-4 h-4 mr-1" />
+                              变更记录
+                            </button>
+                            {pet && (
+                              <Link
+                                to={`/pets/${pet.id}`}
+                                className="inline-flex items-center text-sm text-primary-700 hover:text-primary-900 font-medium"
+                              >
+                                查看详情
+                                <ChevronRight className="w-4 h-4" />
+                              </Link>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       {isExpanded && pkg && (
@@ -389,6 +574,60 @@ export default function Appointments() {
                                   </div>
                                 </div>
                               </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {showChangeLog === ceremony.id && (
+                        <tr key={`${ceremony.id}-changelog`} className="bg-blue-50/40">
+                          <td colSpan={7} className="px-6 py-5">
+                            <div className="bg-white rounded-xl border border-blue-200 p-5 shadow-sm">
+                              <h4 className="font-semibold text-primary-900 flex items-center gap-2 mb-4">
+                                <History className="w-5 h-5 text-primary-600" />
+                                预约变更记录
+                              </h4>
+                              {changeLogs.length > 0 ? (
+                                <div className="space-y-3">
+                                  {changeLogs.map((log) => {
+                                    const actionColor: Record<string, string> = {
+                                      created: 'bg-green-100 text-green-700',
+                                      time_changed: 'bg-blue-100 text-blue-700',
+                                      status_changed: 'bg-amber-100 text-amber-700',
+                                      package_changed: 'bg-purple-100 text-purple-700',
+                                      notes_changed: 'bg-cyan-100 text-cyan-700',
+                                      cancelled: 'bg-red-100 text-red-700',
+                                      other: 'bg-gray-100 text-gray-700',
+                                    };
+                                    return (
+                                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-neutral-50 border border-neutral-100">
+                                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary-400 mt-2" />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${actionColor[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
+                                              {AppointmentChangeActionLabel[log.action] ?? log.action}
+                                            </span>
+                                            <span className="text-xs text-neutral-muted">{formatDateTime(log.timestamp)}</span>
+                                            <span className="text-xs text-neutral-muted">操作人：{log.operator}</span>
+                                          </div>
+                                          <p className="text-sm text-neutral-text">{log.description}</p>
+                                          {log.oldValue && log.newValue && (
+                                            <div className="mt-1 flex items-center gap-2 text-xs">
+                                              <span className="text-red-500 line-through">{log.oldValue}</span>
+                                              <span className="text-neutral-muted">→</span>
+                                              <span className="text-green-600">{log.newValue}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4">
+                                  <AlertTriangle className="w-6 h-6 mx-auto text-neutral-300 mb-2" />
+                                  <p className="text-sm text-neutral-muted">暂无变更记录</p>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
