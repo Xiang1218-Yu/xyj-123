@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Calendar, Check, Plus, Eye, X, Edit, Trash2 } from 'lucide-react';
+import { Archive, Calendar, Check, Plus, Eye, X, Edit, Trash2, Search, Crown, Flame, MapPin, AlertCircle } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store';
-import type { Urn } from '@/shared/types';
+import type { Urn, StorageType } from '@/shared/types';
+import { StorageTypeLabel } from '@/shared/types';
 import { cn } from '@/lib/utils';
 
 const areas = ['A区', 'B区', 'C区'];
@@ -14,6 +15,11 @@ const statusMap: Record<Urn['status'], { label: string; className: string }> = {
   stored: { label: '已存放', className: 'bg-green-100 text-green-700' },
   retrieved: { label: '已取出', className: 'bg-gray-100 text-gray-600' }
 };
+
+const storageTypeOptions: { value: StorageType; label: string; description: string }[] = [
+  { value: 'normal', label: '普通', description: '标准存放区域' },
+  { value: 'vip', label: 'VIP', description: '尊贵独立存放区，含专属祭扫服务' }
+];
 
 interface SlotInfo {
   area: string;
@@ -30,18 +36,32 @@ export default function UrnStorage() {
   const addUrn = useAppStore(state => state.addUrn);
   const updateUrn = useAppStore(state => state.updateUrn);
   const deleteUrn = useAppStore(state => state.deleteUrn);
+  const searchUrnsByPetName = useAppStore(state => state.searchUrnsByPetName);
 
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [highlightedUrnId, setHighlightedUrnId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     petId: '',
     storedDate: new Date().toISOString().split('T')[0],
     expiryDate: '',
+    storageType: 'normal' as StorageType,
   });
+
+  const searchResults = useMemo(() => {
+    if (!searchKeyword.trim()) return [];
+    return searchUrnsByPetName(searchKeyword.trim());
+  }, [searchKeyword, searchUrnsByPetName]);
 
   const getPetName = (petId: string) => {
     const pet = pets.find(p => p.id === petId);
     return pet?.name || '未知';
+  };
+
+  const getPetPhoto = (petId: string) => {
+    const pet = pets.find(p => p.id === petId);
+    return pet?.photoUrl;
   };
 
   const getUrnForSlot = (area: string, shelf: string, position: string) => {
@@ -88,12 +108,14 @@ export default function UrnStorage() {
         position: selectedSlot.position,
         storedDate: formData.storedDate,
         expiryDate: formData.expiryDate || undefined,
-        status: 'stored'
+        status: 'stored',
+        storageType: formData.storageType
       });
       setFormData({
         petId: '',
         storedDate: new Date().toISOString().split('T')[0],
         expiryDate: '',
+        storageType: 'normal',
       });
       setShowAddForm(false);
       closeModal();
@@ -114,11 +136,29 @@ export default function UrnStorage() {
     }
   };
 
+  const handleSearchResultClick = (urn: Urn) => {
+    setHighlightedUrnId(urn.id);
+    setSearchKeyword('');
+    const slot: SlotInfo = {
+      area: urn.area,
+      shelf: urn.shelf,
+      position: urn.position,
+      occupied: true,
+      urn
+    };
+    setSelectedSlot(slot);
+    setTimeout(() => setHighlightedUrnId(null), 3000);
+  };
+
   const storedUrns = urns.filter(u => u.status === 'stored');
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     return dateStr;
+  };
+
+  const isSlotHighlighted = (slot: SlotInfo) => {
+    return highlightedUrnId && slot.urn?.id === highlightedUrnId;
   };
 
   return (
@@ -127,6 +167,72 @@ export default function UrnStorage() {
         title="骨灰盒存放"
         description="骨灰盒位置管理与存取记录"
       />
+
+      <div className="mb-6">
+        <div className="card p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="flex-1 w-full">
+              <label className="label-text mb-2 block">
+                <Search className="w-4 h-4 inline mr-2" />
+                搜索宠物骨灰存放位置
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  className="input-field pl-10"
+                  placeholder="输入宠物名字进行搜索..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-muted" />
+              </div>
+            </div>
+            {searchResults.length > 0 && (
+              <div className="w-full md:w-auto md:min-w-[300px]">
+                <label className="label-text mb-2 block">搜索结果</label>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {searchResults.map(urn => {
+                    const pet = pets.find(p => p.id === urn.petId);
+                    return (
+                      <button
+                        key={urn.id}
+                        className="w-full p-3 rounded-lg border border-primary-100 hover:border-accent hover:bg-accent/5 transition-all flex items-center gap-3 text-left"
+                        onClick={() => handleSearchResultClick(urn)}
+                      >
+                        {pet?.photoUrl && (
+                          <img src={pet.photoUrl} alt={pet.name} className="w-10 h-10 rounded-full object-cover" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-primary-800">{pet?.name}</span>
+                            {urn.storageType === 'vip' && (
+                              <Crown className="w-4 h-4 text-amber-500" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-neutral-muted">
+                            <MapPin className="w-3 h-3" />
+                            {urn.area} {urn.shelf} {urn.position}
+                          </div>
+                        </div>
+                        <Eye className="w-4 h-4 text-accent" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {searchKeyword.trim() && searchResults.length === 0 && (
+              <div className="w-full md:w-auto md:min-w-[300px]">
+                <label className="label-text mb-2 block">搜索结果</label>
+                <div className="p-4 rounded-lg border border-primary-100 text-center">
+                  <AlertCircle className="w-8 h-8 text-primary-300 mx-auto mb-2" />
+                  <p className="text-sm text-neutral-muted">未找到匹配的宠物</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="mb-8">
         <h2 className="font-serif text-xl font-semibold text-primary-800 mb-4">
@@ -149,15 +255,23 @@ export default function UrnStorage() {
                           key={posIndex}
                           onClick={() => handleSlotClick(slot)}
                           className={cn(
-                            'aspect-square rounded-lg border-2 flex items-center justify-center text-xs font-medium transition-all duration-200',
+                            'aspect-square rounded-lg border-2 flex items-center justify-center text-xs font-medium transition-all duration-200 relative',
                             slot.occupied
-                              ? 'bg-accent/20 border-accent text-primary-800 hover:bg-accent/30 hover:shadow-md'
-                              : 'bg-white border-primary-200 text-neutral-muted hover:border-primary-400 hover:bg-primary-50'
+                              ? slot.urn?.storageType === 'vip'
+                                ? 'bg-amber-100/50 border-amber-400 text-primary-800 hover:bg-amber-100 hover:shadow-md'
+                                : 'bg-accent/20 border-accent text-primary-800 hover:bg-accent/30 hover:shadow-md'
+                              : 'bg-white border-primary-200 text-neutral-muted hover:border-primary-400 hover:bg-primary-50',
+                            isSlotHighlighted(slot) && 'ring-4 ring-accent ring-opacity-75 animate-pulse'
                           )}
-                          title={slot.occupied ? `已占用: ${getPetName(slot.urn!.petId)}` : `空闲: ${slot.position}`}
+                          title={slot.occupied ? `已占用: ${getPetName(slot.urn!.petId)} (${StorageTypeLabel[slot.urn!.storageType]})` : `空闲: ${slot.position}`}
                         >
                           {slot.occupied ? (
-                            <Archive className="w-5 h-5 text-accent" />
+                            <>
+                              <Archive className="w-5 h-5 text-accent" />
+                              {slot.urn?.storageType === 'vip' && (
+                                <Crown className="w-3 h-3 text-amber-500 absolute top-1 right-1" />
+                              )}
+                            </>
                           ) : (
                             <span>{posIndex + 1}</span>
                           )}
@@ -167,10 +281,14 @@ export default function UrnStorage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-primary-100 flex items-center gap-6 text-sm">
+              <div className="mt-4 pt-4 border-t border-primary-100 flex flex-wrap items-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-accent/20 border-2 border-accent" />
-                  <span className="text-neutral-muted">已占用</span>
+                  <span className="text-neutral-muted">普通-已占用</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-amber-100/50 border-2 border-amber-400" />
+                  <span className="text-neutral-muted">VIP-已占用</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-white border-2 border-primary-200" />
@@ -196,6 +314,9 @@ export default function UrnStorage() {
                     宠物名
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
+                    类型
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
                     位置
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-neutral-muted">
@@ -215,7 +336,7 @@ export default function UrnStorage() {
               <tbody>
                 {storedUrns.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-3">
                         <Archive className="w-7 h-7 text-primary-400" />
                       </div>
@@ -226,15 +347,34 @@ export default function UrnStorage() {
                   storedUrns.map(urn => (
                     <tr
                       key={urn.id}
-                      className="border-b border-primary-50 hover:bg-primary-50/30 transition-colors"
+                      className={cn(
+                        'border-b border-primary-50 hover:bg-primary-50/30 transition-colors',
+                        highlightedUrnId === urn.id && 'bg-accent/10'
+                      )}
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full overflow-hidden">
+                            {getPetPhoto(urn.petId) && (
+                              <img src={getPetPhoto(urn.petId)!} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
                           <Archive className="w-4 h-4 text-accent" />
                           <span className="text-sm font-medium text-primary-800">
                             {getPetName(urn.petId)}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={cn(
+                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                          urn.storageType === 'vip'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-primary-100 text-primary-700'
+                        )}>
+                          {urn.storageType === 'vip' && <Crown className="w-3 h-3" />}
+                          {StorageTypeLabel[urn.storageType]}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <span className="text-sm text-neutral-text">
@@ -266,6 +406,13 @@ export default function UrnStorage() {
                             title="查看宠物详情"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-accent hover:bg-accent/10 transition-colors"
+                            onClick={() => navigate(`/memorial/${urn.id}`)}
+                            title="在线祭扫"
+                          >
+                            <Flame className="w-4 h-4" />
                           </button>
                           <button
                             className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
@@ -309,11 +456,33 @@ export default function UrnStorage() {
             {selectedSlot.occupied && selectedSlot.urn ? (
               <div className="space-y-4">
                 <div className="p-4 bg-primary-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Archive className="w-5 h-5 text-accent" />
-                    <span className="font-medium text-primary-800">
-                      {getPetName(selectedSlot.urn.petId)}
-                    </span>
+                  <div className="flex items-center gap-3 mb-3">
+                    {getPetPhoto(selectedSlot.urn.petId) && (
+                      <img
+                        src={getPetPhoto(selectedSlot.urn.petId)!}
+                        alt=""
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Archive className="w-5 h-5 text-accent" />
+                        <span className="font-medium text-primary-800">
+                          {getPetName(selectedSlot.urn.petId)}
+                        </span>
+                        {selectedSlot.urn.storageType === 'vip' && (
+                          <Crown className="w-4 h-4 text-amber-500" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                        selectedSlot.urn.storageType === 'vip'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-primary-100 text-primary-700'
+                      )}>
+                        {StorageTypeLabel[selectedSlot.urn.storageType]}
+                      </span>
+                    </div>
                   </div>
                   <div className="text-sm text-neutral-muted space-y-1">
                     <p>存放日期：{formatDate(selectedSlot.urn.storedDate)}</p>
@@ -330,6 +499,13 @@ export default function UrnStorage() {
                   </button>
                   <button
                     className="btn-accent"
+                    onClick={() => navigate(`/memorial/${selectedSlot.urn!.id}`)}
+                  >
+                    <Flame className="w-4 h-4 mr-2" />
+                    祭扫
+                  </button>
+                  <button
+                    className="btn-secondary"
                     onClick={() => handleRetrieve(selectedSlot.urn!.id)}
                   >
                     取出
@@ -365,6 +541,39 @@ export default function UrnStorage() {
                           </option>
                         ))}
                       </select>
+                    </div>
+                    <div>
+                      <label className="label-text mb-3 block">存放类型 *</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {storageTypeOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={cn(
+                              'p-3 rounded-lg border-2 transition-all text-left',
+                              formData.storageType === option.value
+                                ? option.value === 'vip'
+                                  ? 'border-amber-400 bg-amber-50'
+                                  : 'border-accent bg-accent/5'
+                                : 'border-primary-100 hover:border-primary-300'
+                            )}
+                            onClick={() => setFormData(prev => ({ ...prev, storageType: option.value }))}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {option.value === 'vip' && <Crown className={cn('w-4 h-4', formData.storageType === option.value ? 'text-amber-500' : 'text-primary-400')} />}
+                              <span className={cn(
+                                'font-medium',
+                                formData.storageType === option.value
+                                  ? option.value === 'vip' ? 'text-amber-700' : 'text-accent'
+                                  : 'text-primary-800'
+                              )}>
+                                {option.label}
+                              </span>
+                            </div>
+                            <p className="text-xs text-neutral-muted">{option.description}</p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div>
                       <label className="label-text">存放日期 *</label>

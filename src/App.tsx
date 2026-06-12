@@ -34,6 +34,7 @@ import PetLifeStoryView from "@/pages/PetLifeStoryView";
 import MemorialShop from "@/pages/MemorialShop";
 import CheckoutPage from "@/pages/CheckoutPage";
 import OrderList from "@/pages/OrderList";
+import MemorialPage from "@/pages/MemorialPage";
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/cremations" element={<CremationList />} />
           <Route path="/furnaces" element={<FurnaceManagement />} />
           <Route path="/urns" element={<UrnStorage />} />
+          <Route path="/memorial/:urnId" element={<MemorialPage />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reminders" element={<ReminderList />} />
           <Route path="/packages" element={<PackageList />} />

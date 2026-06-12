@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ClipboardList,
   Cog,
+  Flower2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ const navItems = [
   { to: "/cremations", label: "火化管理", icon: Flame },
   { to: "/furnaces", label: "火化炉管理", icon: Cog },
   { to: "/urns", label: "骨灰存放", icon: Archive },
+  { to: "/urns", label: "在线祭扫", icon: Flower2 },
   { to: "/memorial-shop", label: "祭祀用品商城", icon: ShoppingBag },
   { to: "/memorial-orders", label: "用品订单", icon: ClipboardList },
   { to: "/appointments", label: "主人预约", icon: CalendarCheck },

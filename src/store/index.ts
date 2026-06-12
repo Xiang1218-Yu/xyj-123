@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem, Furnace, FurnaceMaintenance, FurnaceCremationProcess, CremationProcessStage, TemperaturePoint } from '../shared/types';
+import type { Owner, Pet, Ceremony, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, FavoriteBreed, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, ContractType, PetLifeStory, StoryNode, MemorialProduct, CartItem, Order, ShippingAddress, OrderPlacementPhoto, OrderStatus, CeremonyTemplate, CeremonyFlowStep, CeremonyItem, Furnace, FurnaceMaintenance, FurnaceCremationProcess, CremationProcessStage, TemperaturePoint, MemorialRecord, MemorialActionType, StorageType } from '../shared/types';
 import {
   mockOwners,
   mockPets,
@@ -28,7 +28,8 @@ import {
   mockCeremonyTemplates,
   mockFurnaces,
   mockFurnaceMaintenances,
-  mockFurnaceProcesses
+  mockFurnaceProcesses,
+  mockMemorialRecords
 } from '../data/mockData';
 
 interface AppState {
@@ -117,6 +118,14 @@ interface AppState {
   updateUrn: (id: string, data: Partial<Urn>) => void;
   deleteUrn: (id: string) => void;
   getUrnById: (id: string) => Urn | undefined;
+  getUrnByPetId: (petId: string) => Urn | undefined;
+  getUrnByPetName: (petName: string) => Urn | undefined;
+  searchUrnsByPetName: (keyword: string) => Urn[];
+
+  memorialRecords: MemorialRecord[];
+  addMemorialRecord: (record: Omit<MemorialRecord, 'id' | 'createdAt'>) => MemorialRecord;
+  getMemorialRecordsByUrnId: (urnId: string) => MemorialRecord[];
+  getMemorialRecordsByPetId: (petId: string) => MemorialRecord[];
 
   addReminder: (reminder: Omit<Reminder, 'id'>) => Reminder;
   updateReminder: (id: string, data: Partial<Reminder>) => void;
@@ -256,6 +265,7 @@ export const useAppStore = create<AppState>()(
       ceremonyTemplates: mockCeremonyTemplates,
       cremations: mockCremations,
       urns: mockUrns,
+      memorialRecords: mockMemorialRecords,
       reminders: mockReminders,
       serviceItems: mockServiceItems,
       funeralPackages: mockFuneralPackages,
@@ -374,7 +384,7 @@ export const useAppStore = create<AppState>()(
       getCremationById: (id) => get().cremations.find((c) => c.id === id),
 
       addUrn: (urn) => {
-        const newUrn = { ...urn, id: generateId('urn') };
+        const newUrn = { storageType: 'normal' as StorageType, ...urn, id: generateId('urn') };
         set((state) => ({
           urns: [...state.urns, newUrn]
         }));
@@ -389,6 +399,40 @@ export const useAppStore = create<AppState>()(
           urns: state.urns.filter((u) => u.id !== id)
         })),
       getUrnById: (id) => get().urns.find((u) => u.id === id),
+      getUrnByPetId: (petId) => get().urns.find((u) => u.petId === petId && u.status === 'stored'),
+      getUrnByPetName: (petName) => {
+        const pets = get().pets;
+        const pet = pets.find(p => p.name.toLowerCase() === petName.toLowerCase());
+        if (!pet) return undefined;
+        return get().urns.find((u) => u.petId === pet.id && u.status === 'stored');
+      },
+      searchUrnsByPetName: (keyword) => {
+        const pets = get().pets;
+        const matchedPetIds = pets
+          .filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()))
+          .map(p => p.id);
+        return get().urns.filter(u => matchedPetIds.includes(u.petId) && u.status === 'stored');
+      },
+
+      addMemorialRecord: (record) => {
+        const newRecord: MemorialRecord = {
+          ...record,
+          id: generateId('mem'),
+          createdAt: new Date().toISOString()
+        };
+        set((state) => ({
+          memorialRecords: [...state.memorialRecords, newRecord]
+        }));
+        return newRecord;
+      },
+      getMemorialRecordsByUrnId: (urnId) =>
+        get()
+          .memorialRecords.filter((r) => r.urnId === urnId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      getMemorialRecordsByPetId: (petId) =>
+        get()
+          .memorialRecords.filter((r) => r.petId === petId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
 
       addReminder: (reminder) => {
         const newReminder = { ...reminder, id: generateId('reminder') };

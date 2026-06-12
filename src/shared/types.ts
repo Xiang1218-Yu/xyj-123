@@ -185,6 +185,13 @@ export interface FurnaceCremationProcess {
   updatedAt: string;
 }
 
+export type StorageType = 'normal' | 'vip';
+
+export const StorageTypeLabel: Record<StorageType, string> = {
+  normal: '普通',
+  vip: 'VIP'
+};
+
 export interface Urn {
   id: string;
   petId: string;
@@ -194,6 +201,26 @@ export interface Urn {
   storedDate: string;
   expiryDate?: string;
   status: 'stored' | 'retrieved';
+  storageType: StorageType;
+}
+
+export type MemorialActionType = 'incense' | 'flower' | 'message';
+
+export const MemorialActionTypeLabel: Record<MemorialActionType, string> = {
+  incense: '上香',
+  flower: '献花',
+  message: '留言'
+};
+
+export interface MemorialRecord {
+  id: string;
+  urnId: string;
+  petId: string;
+  actionType: MemorialActionType;
+  content?: string;
+  flowerType?: string;
+  createdAt: string;
+  visitorName?: string;
 }
 
 export interface Reminder {

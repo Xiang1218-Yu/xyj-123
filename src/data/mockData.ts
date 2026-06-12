@@ -1,4 +1,4 @@
-import type { Owner, Pet, Ceremony, CeremonyTemplate, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order, Furnace, FurnaceMaintenance, FurnaceCremationProcess } from '../shared/types';
+import type { Owner, Pet, Ceremony, CeremonyTemplate, Cremation, Urn, Reminder, ServiceItem, FuneralPackage, Album, Photo, Employee, ShiftSchedule, LeaveRequest, AttendanceRecord, PetBreed, BreedArticle, ContractTemplate, Contract, ContractSignature, ContractTimelineEntry, PetLifeStory, MemorialProduct, Order, Furnace, FurnaceMaintenance, FurnaceCremationProcess, MemorialRecord } from '../shared/types';
 
 export const mockOwners: Owner[] = [
   {
@@ -255,7 +255,8 @@ export const mockUrns: Urn[] = [
     position: '12号',
     storedDate: '2025-03-19',
     expiryDate: '2035-03-19',
-    status: 'stored'
+    status: 'stored',
+    storageType: 'vip'
   },
   {
     id: 'urn-002',
@@ -265,7 +266,8 @@ export const mockUrns: Urn[] = [
     position: '5号',
     storedDate: '2025-01-14',
     expiryDate: '2035-01-14',
-    status: 'stored'
+    status: 'stored',
+    storageType: 'normal'
   },
   {
     id: 'urn-003',
@@ -275,7 +277,63 @@ export const mockUrns: Urn[] = [
     position: '8号',
     storedDate: '2025-04-24',
     expiryDate: '2035-04-24',
-    status: 'stored'
+    status: 'stored',
+    storageType: 'normal'
+  }
+];
+
+export const mockMemorialRecords: MemorialRecord[] = [
+  {
+    id: 'mem-001',
+    urnId: 'urn-001',
+    petId: 'pet-001',
+    actionType: 'incense',
+    createdAt: '2025-06-10T10:30:00Z',
+    visitorName: '张明华'
+  },
+  {
+    id: 'mem-002',
+    urnId: 'urn-001',
+    petId: 'pet-001',
+    actionType: 'flower',
+    flowerType: '白菊花',
+    createdAt: '2025-06-10T10:35:00Z',
+    visitorName: '张明华'
+  },
+  {
+    id: 'mem-003',
+    urnId: 'urn-001',
+    petId: 'pet-001',
+    actionType: 'message',
+    content: '豆豆，你永远是我们家的一员，我们永远爱你。',
+    createdAt: '2025-06-10T10:40:00Z',
+    visitorName: '张明华'
+  },
+  {
+    id: 'mem-004',
+    urnId: 'urn-002',
+    petId: 'pet-003',
+    actionType: 'incense',
+    createdAt: '2025-06-08T14:20:00Z',
+    visitorName: '张明华'
+  },
+  {
+    id: 'mem-005',
+    urnId: 'urn-002',
+    petId: 'pet-003',
+    actionType: 'message',
+    content: '旺财，谢谢你12年的忠诚陪伴，一路走好。',
+    createdAt: '2025-06-08T14:25:00Z',
+    visitorName: '张明华'
+  },
+  {
+    id: 'mem-006',
+    urnId: 'urn-003',
+    petId: 'pet-002',
+    actionType: 'flower',
+    flowerType: '白玫瑰',
+    createdAt: '2025-06-09T09:15:00Z',
+    visitorName: '李小红'
   }
 ];
 
