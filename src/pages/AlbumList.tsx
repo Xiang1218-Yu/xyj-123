@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Images, Plus, Search, PawPrint, User, Trash2, Edit2 } from 'lucide-react';
+import { Images, Plus, PawPrint, User, Trash2, Edit2 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageHeader from '@/components/PageHeader';
+import { SearchInput, Empty } from '@/components/ui';
 
 export default function AlbumList() {
   const { albums, pets, owners, photos, deleteAlbum } = useAppStore();

@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { PawPrint, Plus, Search, User } from 'lucide-react';
+import { PawPrint, Plus, User } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageHeader from '@/components/PageHeader';
+import { SearchInput, Empty } from '@/components/ui';
 
 export default function PetList() {
   const { pets, owners } = useAppStore();
@@ -35,30 +36,29 @@ export default function PetList() {
       />
 
       <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-400" />
-          <input
-            type="text"
-            placeholder="搜索宠物名、品种或主人姓名..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field pl-10"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="搜索宠物名、品种或主人姓名..."
+          className="max-w-md"
+        />
       </div>
 
       {filteredPets.length === 0 ? (
-        <div className="card text-center py-16">
-          <PawPrint className="w-16 h-16 mx-auto text-primary-300 mb-4" />
-          <p className="text-neutral-muted text-lg">
-            {searchQuery ? '未找到匹配的宠物' : '暂无宠物档案'}
-          </p>
-          {!searchQuery && (
-            <Link to="/pets/new" className="btn-primary mt-6">
-              <Plus className="w-4 h-4 mr-2" />
-              添加第一只宠物
-            </Link>
-          )}
+        <div className="card">
+          <Empty
+            variant={searchQuery ? 'search' : 'default'}
+            title={searchQuery ? '未找到匹配的宠物' : '暂无宠物档案'}
+            icon={PawPrint}
+            action={
+              !searchQuery ? (
+                <Link to="/pets/new" className="btn-primary">
+                  <Plus className="w-4 h-4 mr-2" />
+                  添加第一只宠物
+                </Link>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
